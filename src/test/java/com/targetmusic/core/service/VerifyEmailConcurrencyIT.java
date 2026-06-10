@@ -1,5 +1,6 @@
 package com.targetmusic.core.service;
 
+import com.targetmusic.core.domain.exception.email.EmailAlreadyVerifiedException;
 import com.targetmusic.core.domain.exception.email.EmailVerificationCodeExpiredException;
 import com.targetmusic.core.domain.exception.email.EmailVerificationCodeNotFoundException;
 import com.targetmusic.core.ports.in.UserUseCase;
@@ -66,7 +67,8 @@ class VerifyEmailConcurrencyIT {
                     start.await(); // espera o sinal para disparar todas ao mesmo tempo
                     userUseCase.verifyEmail(code);
                     successes.incrementAndGet();
-                } catch (EmailVerificationCodeNotFoundException | EmailVerificationCodeExpiredException e) {
+                } catch (EmailVerificationCodeNotFoundException | EmailVerificationCodeExpiredException
+                         | EmailAlreadyVerifiedException e) {
                     // Esperado para as threads que chegaram depois do CAS ser ganho pela primeira
                     failures.incrementAndGet();
                 } catch (InterruptedException e) {
