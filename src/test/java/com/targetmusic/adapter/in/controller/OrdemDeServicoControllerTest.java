@@ -3,6 +3,7 @@ package com.targetmusic.adapter.in.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.targetmusic.adapter.in.converter.OrdemDeServicoDTOConverter;
+import com.targetmusic.core.domain.exception.os.OSNaoPodeSerRemovidaException;
 import com.targetmusic.core.domain.exception.os.OrdemDeServicoNotFoundException;
 import com.targetmusic.core.domain.exception.os.TransicaoStatusInvalidaException;
 import com.targetmusic.core.domain.model.PageResult;
@@ -22,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -199,5 +201,117 @@ class OrdemDeServicoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].statusNovo").value("RECEBIDO"))
                 .andExpect(jsonPath("$[0].usuarioUsername").value("atendente1"));
+    }
+
+    // ── Sprint D ───────────────────────────────────────────────────────────────
+
+    @Test
+    void definirOrcamento_retorna_204() throws Exception {
+        mockMvc.perform(patch("/os/1/orcamento")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"valor":250.00,"prazoEstimado":"2026-07-01"}
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(osUseCase).definirOrcamento(eq(1L), eq(new BigDecimal("250.00")), any(), any());
+    }
+
+    @Test
+    void definirOrcamento_sem_valor_retorna_400() throws Exception {
+        mockMvc.perform(patch("/os/1/orcamento")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aprovarOrcamento_retorna_204() throws Exception {
+        mockMvc.perform(patch("/os/1/orcamento/aprovar"))
+                .andExpect(status().isNoContent());
+
+        verify(osUseCase).aprovarOrcamento(eq(1L), any());
+    }
+
+    @Test
+    void recusarOrcamento_com_observacao_retorna_204() throws Exception {
+        mockMvc.perform(patch("/os/1/orcamento/recusar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"observacao":"Muito caro"}
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(osUseCase).recusarOrcamento(eq(1L), eq("Muito caro"), any());
+    }
+
+    @Test
+    void recusarOrcamento_sem_body_retorna_204() throws Exception {
+        mockMvc.perform(patch("/os/1/orcamento/recusar"))
+                .andExpect(status().isNoContent());
+
+        verify(osUseCase).recusarOrcamento(eq(1L), isNull(), any());
+    }
+
+    @Test
+    void registrarEntrega_com_valorFinal_retorna_204() throws Exception {
+        mockMvc.perform(patch("/os/1/entrega")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"valorFinal":230.00}
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(osUseCase).registrarEntrega(eq(1L), eq(new BigDecimal("230.00")), any());
+    }
+
+    @Test
+    void registrarEntrega_sem_body_retorna_204() throws Exception {
+        mockMvc.perform(patch("/os/1/entrega"))
+                .andExpect(status().isNoContent());
+
+        verify(osUseCase).registrarEntrega(eq(1L), isNull(), any());
+    }
+
+    @Test
+    void atualizarOS_retorna_200_com_os_atualizada() throws Exception {
+        OrdemDeServico atualizada = osStub();
+        when(osUseCase.atualizar(eq(1L), any(), any(), any())).thenReturn(atualizada);
+        when(clienteUseCase.buscarPorId(1L)).thenReturn(clienteStub());
+        when(instrumentoUseCase.buscarPorId(1L)).thenReturn(instrumentoStub());
+
+        mockMvc.perform(put("/os/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"laudoTecnico":"Potenciômetro com oxidação"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.numero").value("OS-2026-0001"));
+    }
+
+    @Test
+    void removerOS_retorna_204() throws Exception {
+        mockMvc.perform(delete("/os/1"))
+                .andExpect(status().isNoContent());
+
+        verify(osUseCase).remover(1L);
+    }
+
+    @Test
+    void removerOS_retorna_422_quando_status_invalido() throws Exception {
+        doThrow(new OSNaoPodeSerRemovidaException(1L, StatusOS.EM_ANALISE))
+                .when(osUseCase).remover(1L);
+
+        mockMvc.perform(delete("/os/1"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errorCode").value("OS_NAO_PODE_SER_REMOVIDA"));
+    }
+
+    @Test
+    void removerOS_retorna_404_quando_nao_existe() throws Exception {
+        doThrow(new OrdemDeServicoNotFoundException(99L)).when(osUseCase).remover(99L);
+
+        mockMvc.perform(delete("/os/99"))
+                .andExpect(status().isNotFound());
     }
 }
