@@ -14,50 +14,71 @@ Cada sprint entrega:
 
 ---
 
-## Sprint A — Fundação de domínio (V44–V50)
+## ✅ Sprint A — Fundação de domínio (V44–V50) — COMPLETO
 
 **Objetivo:** banco + models do core prontos. Decisões de design:
 - Número de OS: sequência global (`OS-YYYY-NNNN`, nunca reinicia)
 - Técnicos por OS: múltiplos (tabela `os_tecnicos`)
 - Peças: estoque completo (`pecas` + `os_pecas`)
 
-| # | O que | Migration |
-|---|-------|-----------|
-| A1 | Tabela `clientes` | V44 |
-| A2 | Tabela `instrumentos` | V45 |
-| A3 | Tabela `ordens_de_servico` + sequence global | V46 |
-| A4 | Tabela `os_tecnicos` (junction) | V47 |
-| A5 | Tabela `historico_os` | V48 |
-| A6 | Tabela `pecas` (estoque) | V49 |
-| A7 | Tabela `os_pecas` (peças utilizadas por OS) | V50 |
+| # | O que | Migration | Status |
+|---|-------|-----------|--------|
+| A1 | Tabela `clientes` | V44 | ✅ |
+| A2 | Tabela `instrumentos` | V45 | ✅ |
+| A3 | Tabela `ordens_de_servico` + sequence global | V46 | ✅ |
+| A4 | Tabela `os_tecnicos` (junction) | V47 | ✅ |
+| A5 | Tabela `historico_os` | V48 | ✅ |
+| A6 | Tabela `pecas` (estoque) | V49 | ✅ |
+| A7 | Tabela `os_pecas` (peças utilizadas por OS) | V50 | ✅ |
 
-**Entregáveis de código:**
+**Entregáveis de código:** ✅
 - `TipoInstrumento`, `StatusOS` (enums)
 - `Cliente`, `Instrumento`, `OrdemDeServico`, `HistoricoOS`, `Peca`, `OSPeca` (domain models)
 - `TransicaoStatusInvalidaException`, `ClienteNotFoundException`, `InstrumentoNotFoundException`,
   `OrdemDeServicoNotFoundException`, `ClienteTemOSEmAbertoException`,
   `InstrumentoTemOSEmAbertoException`, `EstoqueInsuficienteException`, `PecaNotFoundException`
 
-**Testes (TDD):**
+**Testes (TDD):** ✅ 48 testes, 0 falhas
 - `StatusOSTest` — todas as 14 transições (válidas e inválidas)
 - `OrdemDeServicoTest` — `abrir()`, `mudarStatus()`, `adicionarTecnico()`, `registrarEntrega()`
 - `PecaTest` — `darSaida()` bloqueia se estoque < quantidade, `darEntrada()`, `desativar()`
 
+**Commit:** `43f9d78`
+
 ---
 
-## Sprint B — Clients + Instrumentos (CRUD)
+## ✅ Sprint B — Clientes + Instrumentos (CRUD) — COMPLETO
 
 **Objetivo:** CRUD completo de clientes e instrumentos funcionando.
 
-| Layer | O que implementar |
-|-------|-------------------|
-| Port OUT | `ClienteRepository`, `InstrumentoRepository` |
-| Port IN | `ClienteUseCase`, `InstrumentoUseCase` |
-| Adapter OUT | `ClienteRepositoryImpl` (JPA), `InstrumentoRepositoryImpl` (JPA) |
-| Adapter IN | `ClienteController`, `InstrumentoController` |
-| DTOs | `ClienteRequest`, `ClienteResponse`, `InstrumentoRequest`, `InstrumentoResponse` |
-| Testes unit | `ClienteServiceTest`, `InstrumentoServiceTest` (regras de negócio, bloqueio de deleção) |
-| Testes IT | `ClienteControllerIT`, `InstrumentoControllerIT` (RBAC, 401/403, paginação) |
+| Layer | O que implementar | Status |
+|-------|-------------------|--------|
+| Port OUT | `ClienteRepository`, `InstrumentoRepository` | ✅ |
+| Port IN | `ClienteUseCase`, `InstrumentoUseCase` | ✅ |
+| Service | `ClienteService`, `InstrumentoService` | ✅ |
+| Adapter OUT | `ClienteRepositoryImpl` (JPA), `InstrumentoRepositoryImpl` (JPA) | ✅ |
+| Entities | `ClienteEntity`, `InstrumentoEntity` | ✅ |
+| Converters | `ClienteEntityConverter`, `InstrumentoEntityConverter` (domain ↔ entity) | ✅ |
+| Adapter IN | `ClienteController`, `InstrumentoController` | ✅ |
+| DTOs | `ClienteRequest`, `ClienteResponse`, `InstrumentoRequest`, `InstrumentoResponse` | ✅ |
+| Infra | `GlobalExceptionHandler` + `CoreBeanConfig` + `ConverterBeanConfig` atualizados | ✅ |
+| Testes unit | `ClienteServiceTest` (11), `InstrumentoServiceTest` (11) | ✅ |
+| Testes controller | `ClienteControllerTest` (11), `InstrumentoControllerTest` (10) | ✅ |
+
+**Endpoints entregues:**
+- `POST /clientes` · `GET /clientes` · `GET /clientes/{id}` · `PUT /clientes/{id}` · `DELETE /clientes/{id}`
+- `GET /clientes/{id}/instrumentos`
+- `POST /instrumentos` · `GET /instrumentos/{id}` · `PUT /instrumentos/{id}` · `DELETE /instrumentos/{id}`
+
+**Regras de negócio implementadas:**
+- `DELETE /clientes/{id}` → 409 se cliente tiver OS em aberto
+- `DELETE /instrumentos/{id}` → 409 se instrumento tiver OS em aberto
+- `POST /instrumentos` → 404 se `clienteId` não existir
+- `hasOpenOS` via native SQL (tabela `ordens_de_servico` ainda sem JPA entity)
+
+**Testes (TDD):** ✅ 43 novos testes, total acumulado: 714, 0 falhas
+
+**Commits:** `c82d5ee` → `63dbf71` → `4f96a2e` → `c066d8a` → `bb955a0` → `33d821b` → `c238f90`
 
 ---
 
@@ -132,12 +153,12 @@ Cada sprint entrega:
 
 ## Estado atual
 
-| Sprint | Status |
-|--------|--------|
-| Template segurança (V1–V43) | ✅ Completo |
-| Sprint A — Fundação domínio | Pendente |
-| Sprint B — Clientes + Instrumentos | Pendente |
-| Sprint C — OS básico | Pendente |
-| Sprint D — Orçamento e entrega | Pendente |
-| Sprint E — RBAC negócio | Pendente |
-| Sprint F — Portal cliente | Pendente |
+| Sprint | Status | Testes |
+|--------|--------|--------|
+| Template segurança (V1–V43) | ✅ Completo | 671 |
+| Sprint A — Fundação domínio | ✅ Completo | +48 |
+| Sprint B — Clientes + Instrumentos | ✅ Completo | +43 → **714 total** |
+| Sprint C — OS básico | 🔲 Pendente | — |
+| Sprint D — Orçamento e entrega | 🔲 Pendente | — |
+| Sprint E — RBAC negócio | 🔲 Pendente | — |
+| Sprint F — Portal cliente | 🔲 Pendente | — |
