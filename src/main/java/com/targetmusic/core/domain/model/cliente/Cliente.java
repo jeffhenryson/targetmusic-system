@@ -47,6 +47,18 @@ public class Cliente {
         this.userId = userId;
     }
 
+    public void atualizar(String nome, String telefone, String email, String cpf,
+                          String endereco, String observacoes) {
+        Objects.requireNonNull(nome, "nome is required");
+        Objects.requireNonNull(telefone, "telefone is required");
+        this.nome = nome;
+        this.telefone = telefone;
+        this.email = email;
+        this.cpf = cpf;
+        this.endereco = endereco;
+        this.observacoes = observacoes;
+    }
+
     public Long getId() { return id; }
     public String getNome() { return nome; }
     public String getTelefone() { return telefone; }

@@ -47,6 +47,19 @@ public class Instrumento {
         return i;
     }
 
+    public void atualizar(TipoInstrumento tipo, String marca, String modelo,
+                          String numeroDeSerie, String cor, String descricao) {
+        Objects.requireNonNull(tipo, "tipo is required");
+        Objects.requireNonNull(marca, "marca is required");
+        Objects.requireNonNull(modelo, "modelo is required");
+        this.tipo = tipo;
+        this.marca = marca;
+        this.modelo = modelo;
+        this.numeroDeSerie = numeroDeSerie;
+        this.cor = cor;
+        this.descricao = descricao;
+    }
+
     public Long getId() { return id; }
     public TipoInstrumento getTipo() { return tipo; }
     public String getMarca() { return marca; }
