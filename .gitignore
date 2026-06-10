@@ -1,0 +1,61 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+# Ambiente Var
+.env
+
+# Configuração de desenvolvimento local — use application-dev.properties.example como template
+src/main/resources/application-dev.properties
+
+/docs
+
+/node_modules
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform-lite/.terraform/
+terraform-lite/.terraform.lock.hcl
+terraform-lite/terraform.tfvars
+terraform-lite/terraform.tfstate
+terraform-lite/terraform.tfstate.backup
+
+.claude
+# Uploads
+uploads/
+
+scripts/

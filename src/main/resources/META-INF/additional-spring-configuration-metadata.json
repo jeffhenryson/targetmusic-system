@@ -1,0 +1,269 @@
+{
+  "properties": [
+    {
+      "name": "jwt.secret",
+      "type": "java.lang.String",
+      "description": "Chave secreta para assinar tokens JWT (HS256). Deve ser base64 de no mínimo 256 bits."
+    },
+    {
+      "name": "jwt.access-ttl-minutes",
+      "type": "java.lang.Long",
+      "description": "Tempo de vida do access token em minutos.",
+      "defaultValue": 15
+    },
+    {
+      "name": "jwt.refresh-ttl-days",
+      "type": "java.lang.Long",
+      "description": "Tempo de vida do refresh token em dias.",
+      "defaultValue": 7
+    },
+    {
+      "name": "cors.allowed-origins",
+      "type": "java.lang.String",
+      "description": "Origens permitidas no CORS, separadas por vírgula. Use * para permitir todas (apenas dev).",
+      "defaultValue": "*"
+    },
+    {
+      "name": "cors.allowed-methods",
+      "type": "java.lang.String",
+      "description": "Métodos HTTP permitidos no CORS, separados por vírgula.",
+      "defaultValue": "GET,POST,PUT,DELETE,OPTIONS"
+    },
+    {
+      "name": "cors.allowed-headers",
+      "type": "java.lang.String",
+      "description": "Headers permitidos no CORS, separados por vírgula. Use * para permitir todos.",
+      "defaultValue": "*"
+    },
+    {
+      "name": "rate.limit.login.window-seconds",
+      "type": "java.lang.Long",
+      "description": "Janela de tempo em segundos para o rate limiting do endpoint /auth/login.",
+      "defaultValue": 60
+    },
+    {
+      "name": "rate.limit.login.max-requests",
+      "type": "java.lang.Long",
+      "description": "Número máximo de requisições permitidas por IP na janela do rate limiting.",
+      "defaultValue": 10
+    },
+    {
+      "name": "auth.lockout.max-attempts",
+      "type": "java.lang.Integer",
+      "description": "Número de falhas de login consecutivas antes de bloquear a conta do usuário.",
+      "defaultValue": 5
+    },
+    {
+      "name": "auth.lockout.duration-minutes",
+      "type": "java.lang.Long",
+      "description": "Tempo em minutos que a conta permanece bloqueada após exceder as tentativas.",
+      "defaultValue": 15
+    },
+    {
+      "name": "email.verification.ttl-minutes",
+      "type": "java.lang.Long",
+      "description": "Tempo de vida do código de verificação de email em minutos.",
+      "defaultValue": 15
+    },
+    {
+      "name": "email.verification.resend-cooldown-seconds",
+      "type": "java.lang.Long",
+      "description": "Cooldown mínimo em segundos entre reenvios de código de verificação para o mesmo destinatário.",
+      "defaultValue": 60
+    },
+    {
+      "name": "resend.api-key",
+      "type": "java.lang.String",
+      "description": "API key do serviço Resend para envio de emails transacionais."
+    },
+    {
+      "name": "resend.from",
+      "type": "java.lang.String",
+      "description": "Endereço remetente dos emails enviados via Resend (ex: 'Sistema <noreply@example.com>').",
+      "defaultValue": "noreply@example.com"
+    },
+    {
+      "name": "refresh-token.cleanup.cron",
+      "type": "java.lang.String",
+      "description": "Expressão cron para limpeza de refresh tokens expirados e revogados.",
+      "defaultValue": "0 0 3 * * *"
+    },
+    {
+      "name": "resend.api-url",
+      "type": "java.lang.String",
+      "description": "URL base da API de envio de emails (Resend). Útil para testes de integração com mock server.",
+      "defaultValue": "https://api.resend.com/emails"
+    },
+    {
+      "name": "seed.admin.password",
+      "type": "java.lang.String",
+      "description": "Senha do usuário admin criado pelo SeedConfig em dev. Override via SEED_ADMIN_PASSWORD.",
+      "defaultValue": "Admin@dev1"
+    },
+    {
+      "name": "seed.user.password",
+      "type": "java.lang.String",
+      "description": "Senha do usuário user criado pelo SeedConfig em dev. Override via SEED_USER_PASSWORD.",
+      "defaultValue": "User@dev1"
+    },
+    {
+      "name": "email.provider",
+      "type": "java.lang.String",
+      "description": "Adapter de email ativo: 'logging' (padrão dev — loga no console) ou 'resend' (envia via API Resend). Defina EMAIL_PROVIDER=resend em dev para testar envio real.",
+      "defaultValue": "logging"
+    },
+    {
+      "name": "dev.challenge.cleanup.cron",
+      "type": "java.lang.String",
+      "description": "Expressão cron para limpeza de dev_challenge_tokens expirados.",
+      "defaultValue": "0 45 3 * * *"
+    },
+    {
+      "name": "seed.dev.email",
+      "type": "java.lang.String",
+      "description": "E-mail do usuário DEV criado pelo SeedConfig. Vazio = usuário DEV não é criado. Override via DEV_EMAIL.",
+      "defaultValue": ""
+    },
+    {
+      "name": "seed.dev.password",
+      "type": "java.lang.String",
+      "description": "Senha do usuário DEV criado pelo SeedConfig. Override via DEV_PASSWORD.",
+      "defaultValue": "Dev@secure1!"
+    },
+    {
+      "name": "security.content-security-policy",
+      "type": "java.lang.String",
+      "description": "Diretiva Content-Security-Policy enviada em todas as respostas. Vazio desabilita o header (padrão em dev). Em hml/prod use 'default-src none; frame-ancestors none'.",
+      "defaultValue": ""
+    },
+    {
+      "name": "jwt.issuer",
+      "type": "java.lang.String",
+      "description": "Claim 'iss' inserido nos JWTs. Identifica o emissor; deve ser único por serviço para evitar tokens cruzados entre projetos.",
+      "defaultValue": "target-music"
+    },
+    {
+      "name": "jwt.audience",
+      "type": "java.lang.String",
+      "description": "Claim 'aud' inserido nos JWTs. Identifica o público-alvo esperado; validado no parse.",
+      "defaultValue": "api"
+    },
+    {
+      "name": "cors.exposed-headers",
+      "type": "java.lang.String",
+      "description": "Headers de resposta expostos ao browser via CORS, separados por vírgula. Padrão: X-Trace-Id (permite clientes lerem o traceId).",
+      "defaultValue": "X-Trace-Id"
+    },
+    {
+      "name": "email.verification.subject",
+      "type": "java.lang.String",
+      "description": "Assunto do email de verificação de cadastro enviado via ResendEmailAdapter.",
+      "defaultValue": "Código de confirmação de cadastro"
+    },
+    {
+      "name": "email.verification.frontend-url",
+      "type": "java.lang.String",
+      "description": "URL base do frontend para o link de verificação de email. O code é anexado como query param ?code=. Ex: https://hml.seudominio.com/auth/verify-email",
+      "defaultValue": "http://localhost:4200/auth/verify-email"
+    },
+    {
+      "name": "auth.registration.default-roles",
+      "type": "java.lang.String",
+      "description": "Roles atribuídas automaticamente em auto-registros via POST /auth/register, separadas por vírgula. Vazio = sem role automática (princípio do mínimo privilégio). Exemplo: ROLE_USER",
+      "defaultValue": ""
+    },
+    {
+      "name": "auth.max-sessions-per-user",
+      "type": "java.lang.Integer",
+      "description": "Número máximo de refresh tokens (sessões) ativos simultâneos por usuário. Ao exceder, a sessão mais antiga é revogada automaticamente. 0 = sem limite.",
+      "defaultValue": 5
+    },
+    {
+      "name": "totp.encryption.key",
+      "type": "java.lang.String",
+      "description": "Chave AES-256 para criptografar segredos TOTP em repouso. Deve ser Base64 de exatamente 32 bytes. Gere com: openssl rand -base64 32. OBRIGATÓRIO em hml/prod; em dev aceita placeholder."
+    },
+    {
+      "name": "totp.app-name",
+      "type": "java.lang.String",
+      "description": "Nome exibido no app autenticador (Google Authenticator, Authy, etc.) ao escanear o QR code.",
+      "defaultValue": "target-music"
+    },
+    {
+      "name": "cors.allow-credentials",
+      "type": "java.lang.Boolean",
+      "description": "Permite envio de cookies/credentials cross-origin (CORS). Exige que allowed-origins não seja '*'.",
+      "defaultValue": false
+    },
+    {
+      "name": "cookie.secure",
+      "type": "java.lang.Boolean",
+      "description": "Define o atributo Secure do cookie refreshToken. true em hml/prod (HTTPS obrigatório); false em dev (HTTP local).",
+      "defaultValue": true
+    },
+    {
+      "name": "password-reset.ttl-minutes",
+      "type": "java.lang.Long",
+      "description": "Tempo de vida do token de reset de senha em minutos.",
+      "defaultValue": 15
+    },
+    {
+      "name": "password-reset.frontend-url",
+      "type": "java.lang.String",
+      "description": "URL base do frontend para o link de reset de senha. O token é anexado como query param ?token=.",
+      "defaultValue": "http://localhost:3000/reset-password"
+    },
+    {
+      "name": "avatar.storage.type",
+      "type": "java.lang.String",
+      "description": "Tipo de armazenamento de avatares: 'local' (disco) ou 's3' (Amazon S3). Use 's3' em produção multi-instância.",
+      "defaultValue": "local"
+    },
+    {
+      "name": "avatar.storage.dir",
+      "type": "java.lang.String",
+      "description": "Diretório local para armazenamento de avatares (ativo quando avatar.storage.type=local).",
+      "defaultValue": "./uploads/avatars"
+    },
+    {
+      "name": "avatar.base-url",
+      "type": "java.lang.String",
+      "description": "URL pública base para servir avatares (prefixo antes do filename). Ex: https://cdn.example.com/avatars",
+      "defaultValue": "http://localhost:8080"
+    },
+    {
+      "name": "avatar.max-size-bytes",
+      "type": "java.lang.Long",
+      "description": "Tamanho máximo permitido para upload de avatar em bytes.",
+      "defaultValue": 2097152
+    },
+    {
+      "name": "avatar.s3.bucket",
+      "type": "java.lang.String",
+      "description": "Nome do bucket S3 para armazenamento de avatares (ativo quando avatar.storage.type=s3).",
+      "defaultValue": ""
+    },
+    {
+      "name": "avatar.s3.region",
+      "type": "java.lang.String",
+      "description": "Região AWS do bucket S3.",
+      "defaultValue": "us-east-1"
+    },
+    {
+      "name": "avatar.s3.public-url-base",
+      "type": "java.lang.String",
+      "description": "URL pública base para objetos no S3 (CloudFront CDN ou URL direta do bucket).",
+      "defaultValue": ""
+    },
+    {
+      "name": "avatar.s3.access-key",
+      "type": "java.lang.String",
+      "description": "AWS access key para acesso ao S3. Em ECS/EC2 com IAM role, deixar vazio (usa role da instância)."
+    },
+    {
+      "name": "avatar.s3.secret-key",
+      "type": "java.lang.String",
+      "description": "AWS secret key para acesso ao S3. Em ECS/EC2 com IAM role, deixar vazio (usa role da instância)."
+    }
+  ]
+}
