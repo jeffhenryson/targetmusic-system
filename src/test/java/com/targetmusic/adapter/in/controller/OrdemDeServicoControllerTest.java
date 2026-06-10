@@ -126,7 +126,7 @@ class OrdemDeServicoControllerTest {
 
         mockMvc.perform(get("/os/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("OS_NOT_FOUND"));
+                .andExpect(jsonPath("$.errorCode").value("OS_NOT_FOUND"));
     }
 
     @Test
@@ -187,7 +187,7 @@ class OrdemDeServicoControllerTest {
                                 {"novoStatus":"PRONTO"}
                                 """))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value("TRANSICAO_STATUS_INVALIDA"));
+                .andExpect(jsonPath("$.errorCode").value("TRANSICAO_STATUS_INVALIDA"));
     }
 
     @Test

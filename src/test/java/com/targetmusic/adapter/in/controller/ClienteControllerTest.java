@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.targetmusic.adapter.in.converter.ClienteDTOConverter;
 import com.targetmusic.adapter.in.converter.InstrumentoDTOConverter;
+import com.targetmusic.adapter.in.converter.OrdemDeServicoDTOConverter;
 import com.targetmusic.core.domain.exception.cliente.ClienteNotFoundException;
 import com.targetmusic.core.domain.exception.cliente.ClienteTemOSEmAbertoException;
 import com.targetmusic.core.domain.model.PageResult;
@@ -12,6 +13,7 @@ import com.targetmusic.core.domain.model.instrumento.Instrumento;
 import com.targetmusic.core.domain.model.instrumento.TipoInstrumento;
 import com.targetmusic.core.ports.in.ClienteUseCase;
 import com.targetmusic.core.ports.in.InstrumentoUseCase;
+import com.targetmusic.core.ports.in.OrdemDeServicoUseCase;
 import com.targetmusic.infra.handler.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,15 +34,18 @@ public class ClienteControllerTest {
     private MockMvc mockMvc;
     private ClienteUseCase clienteUseCase;
     private InstrumentoUseCase instrumentoUseCase;
+    private OrdemDeServicoUseCase osUseCase;
     private final ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @BeforeEach
     void setup() {
         clienteUseCase = mock(ClienteUseCase.class);
         instrumentoUseCase = mock(InstrumentoUseCase.class);
+        osUseCase = mock(OrdemDeServicoUseCase.class);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new ClienteController(clienteUseCase, instrumentoUseCase,
-                        new ClienteDTOConverter(), new InstrumentoDTOConverter()))
+                        osUseCase, new ClienteDTOConverter(), new InstrumentoDTOConverter(),
+                        new OrdemDeServicoDTOConverter()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }

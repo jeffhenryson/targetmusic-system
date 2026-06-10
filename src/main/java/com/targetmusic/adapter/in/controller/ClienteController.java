@@ -2,14 +2,18 @@ package com.targetmusic.adapter.in.controller;
 
 import com.targetmusic.adapter.in.converter.ClienteDTOConverter;
 import com.targetmusic.adapter.in.converter.InstrumentoDTOConverter;
+import com.targetmusic.adapter.in.converter.OrdemDeServicoDTOConverter;
 import com.targetmusic.adapter.in.dtos.request.ClienteRequest;
 import com.targetmusic.adapter.in.dtos.response.ClienteResponse;
 import com.targetmusic.adapter.in.dtos.response.InstrumentoResponse;
+import com.targetmusic.adapter.in.dtos.response.OSResponse;
 import com.targetmusic.core.domain.model.PageResult;
 import com.targetmusic.core.domain.model.cliente.Cliente;
 import com.targetmusic.core.domain.model.instrumento.Instrumento;
+import com.targetmusic.core.domain.model.os.OrdemDeServico;
 import com.targetmusic.core.ports.in.ClienteUseCase;
 import com.targetmusic.core.ports.in.InstrumentoUseCase;
+import com.targetmusic.core.ports.in.OrdemDeServicoUseCase;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -26,15 +30,22 @@ public class ClienteController {
 
     private final ClienteUseCase clienteUseCase;
     private final InstrumentoUseCase instrumentoUseCase;
+    private final OrdemDeServicoUseCase osUseCase;
     private final ClienteDTOConverter clienteConverter;
     private final InstrumentoDTOConverter instrumentoConverter;
+    private final OrdemDeServicoDTOConverter osConverter;
 
     public ClienteController(ClienteUseCase clienteUseCase, InstrumentoUseCase instrumentoUseCase,
-                              ClienteDTOConverter clienteConverter, InstrumentoDTOConverter instrumentoConverter) {
+                              OrdemDeServicoUseCase osUseCase,
+                              ClienteDTOConverter clienteConverter,
+                              InstrumentoDTOConverter instrumentoConverter,
+                              OrdemDeServicoDTOConverter osConverter) {
         this.clienteUseCase = clienteUseCase;
         this.instrumentoUseCase = instrumentoUseCase;
+        this.osUseCase = osUseCase;
         this.clienteConverter = clienteConverter;
         this.instrumentoConverter = instrumentoConverter;
+        this.osConverter = osConverter;
     }
 
     @PostMapping
@@ -87,5 +98,16 @@ public class ClienteController {
     public ResponseEntity<List<InstrumentoResponse>> listarInstrumentos(@PathVariable Long id) {
         List<Instrumento> instrumentos = instrumentoUseCase.listarPorCliente(id);
         return ResponseEntity.ok(instrumentos.stream().map(instrumentoConverter::toResponse).toList());
+    }
+
+    @GetMapping("/{id}/os")
+    @PreAuthorize("hasAuthority('OS_READ')")
+    public ResponseEntity<List<OSResponse>> listarOS(@PathVariable Long id) {
+        Cliente cliente = clienteUseCase.buscarPorId(id);
+        List<OrdemDeServico> osList = osUseCase.listarPorCliente(id);
+        return ResponseEntity.ok(osList.stream()
+                .map(os -> osConverter.toResponse(os,
+                        instrumentoUseCase.buscarPorId(os.getInstrumentoId()), cliente))
+                .toList());
     }
 }
