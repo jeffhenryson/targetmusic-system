@@ -7,6 +7,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import com.targetmusic.core.ports.in.ClienteUseCase;
+import com.targetmusic.core.ports.in.InstrumentoUseCase;
+import com.targetmusic.core.ports.out.cliente.ClienteRepository;
+import com.targetmusic.core.ports.out.instrumento.InstrumentoRepository;
+import com.targetmusic.core.service.ClienteService;
+import com.targetmusic.core.service.InstrumentoService;
 import com.targetmusic.core.ports.in.AuditLogsUseCase;
 import com.targetmusic.core.ports.in.AuthUseCase;
 import com.targetmusic.core.ports.in.AvatarUseCase;
@@ -189,6 +195,17 @@ class CoreBeanConfig {
     @Bean
     SystemConfigUseCase systemConfigUseCase(SystemConfigPort configPort) {
         return new SystemConfigService(configPort);
+    }
+
+    @Bean
+    ClienteUseCase clienteUseCase(ClienteRepository clienteRepository) {
+        return new ClienteService(clienteRepository);
+    }
+
+    @Bean
+    InstrumentoUseCase instrumentoUseCase(InstrumentoRepository instrumentoRepository,
+                                           ClienteRepository clienteRepository) {
+        return new InstrumentoService(instrumentoRepository, clienteRepository);
     }
 
     @Bean

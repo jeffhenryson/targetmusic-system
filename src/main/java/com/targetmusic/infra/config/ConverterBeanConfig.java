@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.targetmusic.adapter.in.converter.ClienteDTOConverter;
+import com.targetmusic.adapter.in.converter.InstrumentoDTOConverter;
 import com.targetmusic.adapter.in.converter.PermissionDTOConverter;
 import com.targetmusic.adapter.in.converter.RoleDTOConverter;
 import com.targetmusic.adapter.in.converter.UserDTOConverter;
@@ -30,5 +32,15 @@ class ConverterBeanConfig {
     @Bean
     PermissionDTOConverter permissionDTOConverter() {
         return new PermissionDTOConverter();
+    }
+
+    @Bean
+    ClienteDTOConverter clienteDTOConverter() {
+        return new ClienteDTOConverter();
+    }
+
+    @Bean
+    InstrumentoDTOConverter instrumentoDTOConverter() {
+        return new InstrumentoDTOConverter();
     }
 }

@@ -1,5 +1,13 @@
 package com.targetmusic.infra.handler;
 
+import com.targetmusic.core.domain.exception.cliente.ClienteNotFoundException;
+import com.targetmusic.core.domain.exception.cliente.ClienteTemOSEmAbertoException;
+import com.targetmusic.core.domain.exception.estoque.EstoqueInsuficienteException;
+import com.targetmusic.core.domain.exception.estoque.PecaNotFoundException;
+import com.targetmusic.core.domain.exception.instrumento.InstrumentoNotFoundException;
+import com.targetmusic.core.domain.exception.instrumento.InstrumentoTemOSEmAbertoException;
+import com.targetmusic.core.domain.exception.os.OrdemDeServicoNotFoundException;
+import com.targetmusic.core.domain.exception.os.TransicaoStatusInvalidaException;
 import com.targetmusic.core.domain.exception.ModuleDisabledException;
 import com.targetmusic.core.domain.exception.auth.TotpSetupRequiredException;
 import com.targetmusic.core.domain.exception.avatar.AvatarTooLargeException;
@@ -300,6 +308,46 @@ public class GlobalExceptionHandler {
             message += ". Valores aceitos: " + valid;
         }
         return error(HttpStatus.BAD_REQUEST, message, "INVALID_ENUM_VALUE", req);
+    }
+
+    @ExceptionHandler(ClienteNotFoundException.class)
+    public ResponseEntity<ApiError> handleClienteNotFound(ClienteNotFoundException ex, HttpServletRequest req) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage(), "CLIENTE_NOT_FOUND", req);
+    }
+
+    @ExceptionHandler(ClienteTemOSEmAbertoException.class)
+    public ResponseEntity<ApiError> handleClienteTemOS(ClienteTemOSEmAbertoException ex, HttpServletRequest req) {
+        return error(HttpStatus.CONFLICT, ex.getMessage(), "CLIENTE_TEM_OS_ABERTA", req);
+    }
+
+    @ExceptionHandler(InstrumentoNotFoundException.class)
+    public ResponseEntity<ApiError> handleInstrumentoNotFound(InstrumentoNotFoundException ex, HttpServletRequest req) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage(), "INSTRUMENTO_NOT_FOUND", req);
+    }
+
+    @ExceptionHandler(InstrumentoTemOSEmAbertoException.class)
+    public ResponseEntity<ApiError> handleInstrumentoTemOS(InstrumentoTemOSEmAbertoException ex, HttpServletRequest req) {
+        return error(HttpStatus.CONFLICT, ex.getMessage(), "INSTRUMENTO_TEM_OS_ABERTA", req);
+    }
+
+    @ExceptionHandler(OrdemDeServicoNotFoundException.class)
+    public ResponseEntity<ApiError> handleOSNotFound(OrdemDeServicoNotFoundException ex, HttpServletRequest req) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage(), "OS_NOT_FOUND", req);
+    }
+
+    @ExceptionHandler(TransicaoStatusInvalidaException.class)
+    public ResponseEntity<ApiError> handleTransicaoInvalida(TransicaoStatusInvalidaException ex, HttpServletRequest req) {
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), "TRANSICAO_STATUS_INVALIDA", req);
+    }
+
+    @ExceptionHandler(EstoqueInsuficienteException.class)
+    public ResponseEntity<ApiError> handleEstoqueInsuficiente(EstoqueInsuficienteException ex, HttpServletRequest req) {
+        return error(HttpStatus.CONFLICT, ex.getMessage(), "ESTOQUE_INSUFICIENTE", req);
+    }
+
+    @ExceptionHandler(PecaNotFoundException.class)
+    public ResponseEntity<ApiError> handlePecaNotFound(PecaNotFoundException ex, HttpServletRequest req) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage(), "PECA_NOT_FOUND", req);
     }
 
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
