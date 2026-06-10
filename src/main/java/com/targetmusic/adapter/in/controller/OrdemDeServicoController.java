@@ -3,7 +3,11 @@ package com.targetmusic.adapter.in.controller;
 import com.targetmusic.adapter.in.converter.OrdemDeServicoDTOConverter;
 import com.targetmusic.adapter.in.dtos.request.AtribuirTecnicoRequest;
 import com.targetmusic.adapter.in.dtos.request.AtualizarStatusRequest;
+import com.targetmusic.adapter.in.dtos.request.EntregaRequest;
+import com.targetmusic.adapter.in.dtos.request.OrcamentoRequest;
 import com.targetmusic.adapter.in.dtos.request.OSRequest;
+import com.targetmusic.adapter.in.dtos.request.OSUpdateRequest;
+import com.targetmusic.adapter.in.dtos.request.RecusarOrcamentoRequest;
 import com.targetmusic.adapter.in.dtos.response.HistoricoOSResponse;
 import com.targetmusic.adapter.in.dtos.response.OSResponse;
 import com.targetmusic.core.domain.model.PageResult;
@@ -113,6 +117,66 @@ public class OrdemDeServicoController {
                         .map(converter::toHistoricoResponse)
                         .toList()
         );
+    }
+
+    // ── Sprint D ──────────────────────────────────────────────────────────────
+
+    @PatchMapping("/{id}/orcamento")
+    @PreAuthorize("hasAuthority('OS_ORCAMENTO')")
+    public ResponseEntity<Void> definirOrcamento(@PathVariable Long id,
+                                                  @Valid @RequestBody OrcamentoRequest request,
+                                                  Authentication authentication) {
+        String username = authentication != null ? authentication.getName() : "system";
+        osUseCase.definirOrcamento(id, request.valor(), request.prazoEstimado(), username);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/orcamento/aprovar")
+    @PreAuthorize("hasAuthority('OS_ORCAMENTO_APROVAR')")
+    public ResponseEntity<Void> aprovarOrcamento(@PathVariable Long id,
+                                                  Authentication authentication) {
+        String username = authentication != null ? authentication.getName() : "system";
+        osUseCase.aprovarOrcamento(id, username);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/orcamento/recusar")
+    @PreAuthorize("hasAuthority('OS_ORCAMENTO_RECUSAR')")
+    public ResponseEntity<Void> recusarOrcamento(@PathVariable Long id,
+                                                   @RequestBody(required = false) RecusarOrcamentoRequest request,
+                                                   Authentication authentication) {
+        String username = authentication != null ? authentication.getName() : "system";
+        String observacao = request != null ? request.observacao() : null;
+        osUseCase.recusarOrcamento(id, observacao, username);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/entrega")
+    @PreAuthorize("hasAuthority('OS_ENTREGA')")
+    public ResponseEntity<Void> registrarEntrega(@PathVariable Long id,
+                                                  @RequestBody(required = false) EntregaRequest request,
+                                                  Authentication authentication) {
+        String username = authentication != null ? authentication.getName() : "system";
+        java.math.BigDecimal valorFinal = request != null ? request.valorFinal() : null;
+        osUseCase.registrarEntrega(id, valorFinal, username);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('OS_UPDATE')")
+    public ResponseEntity<OSResponse> atualizar(@PathVariable Long id,
+                                                 @RequestBody OSUpdateRequest request,
+                                                 Authentication authentication) {
+        OrdemDeServico os = osUseCase.atualizar(id, request.laudoTecnico(),
+                request.prazoEstimado(), request.observacoes());
+        return ResponseEntity.ok(toResponse(os));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('OS_DELETE')")
+    public ResponseEntity<Void> remover(@PathVariable Long id) {
+        osUseCase.remover(id);
+        return ResponseEntity.noContent().build();
     }
 
     private OSResponse toResponse(OrdemDeServico os) {

@@ -7,6 +7,7 @@ import com.targetmusic.core.domain.exception.estoque.PecaNotFoundException;
 import com.targetmusic.core.domain.exception.instrumento.InstrumentoNotFoundException;
 import com.targetmusic.core.domain.exception.instrumento.InstrumentoTemOSEmAbertoException;
 import com.targetmusic.core.domain.exception.os.OrdemDeServicoNotFoundException;
+import com.targetmusic.core.domain.exception.os.OSNaoPodeSerRemovidaException;
 import com.targetmusic.core.domain.exception.os.TransicaoStatusInvalidaException;
 import com.targetmusic.core.domain.exception.ModuleDisabledException;
 import com.targetmusic.core.domain.exception.auth.TotpSetupRequiredException;
@@ -338,6 +339,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TransicaoStatusInvalidaException.class)
     public ResponseEntity<ApiError> handleTransicaoInvalida(TransicaoStatusInvalidaException ex, HttpServletRequest req) {
         return error(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), "TRANSICAO_STATUS_INVALIDA", req);
+    }
+
+    @ExceptionHandler(OSNaoPodeSerRemovidaException.class)
+    public ResponseEntity<ApiError> handleOSNaoPodeSerRemovida(OSNaoPodeSerRemovidaException ex, HttpServletRequest req) {
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), "OS_NAO_PODE_SER_REMOVIDA", req);
     }
 
     @ExceptionHandler(EstoqueInsuficienteException.class)
