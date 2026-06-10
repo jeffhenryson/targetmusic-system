@@ -2,11 +2,15 @@ package com.targetmusic.core.service;
 
 import com.targetmusic.core.domain.exception.cliente.ClienteNotFoundException;
 import com.targetmusic.core.domain.exception.instrumento.InstrumentoNotFoundException;
+import com.targetmusic.core.domain.exception.os.OSNaoPodeSerRemovidaException;
 import com.targetmusic.core.domain.exception.os.OrdemDeServicoNotFoundException;
 import com.targetmusic.core.domain.model.PageResult;
 import com.targetmusic.core.domain.model.os.HistoricoOS;
 import com.targetmusic.core.domain.model.os.OrdemDeServico;
 import com.targetmusic.core.domain.model.os.StatusOS;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import com.targetmusic.core.ports.in.OrdemDeServicoUseCase;
 import com.targetmusic.core.ports.out.cliente.ClienteRepository;
 import com.targetmusic.core.ports.out.instrumento.InstrumentoRepository;
@@ -126,5 +130,81 @@ public class OrdemDeServicoService implements OrdemDeServicoUseCase {
         osRepository.findById(osId)
                 .orElseThrow(() -> new OrdemDeServicoNotFoundException(osId));
         return historicoRepository.findByOsId(osId);
+    }
+
+    @Override
+    @Transactional
+    public void definirOrcamento(Long osId, BigDecimal valor, LocalDate prazoEstimado,
+                                  String usuarioUsername) {
+        OrdemDeServico os = osRepository.findById(osId)
+                .orElseThrow(() -> new OrdemDeServicoNotFoundException(osId));
+        StatusOS statusAnterior = os.getStatus();
+        os.definirOrcamento(valor);
+        if (prazoEstimado != null) os.definirPrazo(prazoEstimado);
+        os.mudarStatus(StatusOS.AGUARDANDO_APROVACAO);
+        osRepository.save(os);
+        historicoRepository.save(new HistoricoOS(null, osId,
+                statusAnterior, StatusOS.AGUARDANDO_APROVACAO, usuarioUsername, null, Instant.now()));
+    }
+
+    @Override
+    @Transactional
+    public void aprovarOrcamento(Long osId, String usuarioUsername) {
+        OrdemDeServico os = osRepository.findById(osId)
+                .orElseThrow(() -> new OrdemDeServicoNotFoundException(osId));
+        StatusOS statusAnterior = os.getStatus();
+        os.mudarStatus(StatusOS.EM_MANUTENCAO);
+        osRepository.save(os);
+        historicoRepository.save(new HistoricoOS(null, osId,
+                statusAnterior, StatusOS.EM_MANUTENCAO, usuarioUsername, "Orçamento aprovado", Instant.now()));
+    }
+
+    @Override
+    @Transactional
+    public void recusarOrcamento(Long osId, String observacao, String usuarioUsername) {
+        OrdemDeServico os = osRepository.findById(osId)
+                .orElseThrow(() -> new OrdemDeServicoNotFoundException(osId));
+        StatusOS statusAnterior = os.getStatus();
+        os.mudarStatus(StatusOS.CANCELADO);
+        os.definirObservacoes(observacao != null ? observacao : "Orçamento recusado");
+        osRepository.save(os);
+        historicoRepository.save(new HistoricoOS(null, osId,
+                statusAnterior, StatusOS.CANCELADO, usuarioUsername, "Orçamento recusado", Instant.now()));
+    }
+
+    @Override
+    @Transactional
+    public void registrarEntrega(Long osId, BigDecimal valorFinal, String usuarioUsername) {
+        OrdemDeServico os = osRepository.findById(osId)
+                .orElseThrow(() -> new OrdemDeServicoNotFoundException(osId));
+        StatusOS statusAnterior = os.getStatus();
+        if (valorFinal != null) os.definirValorFinal(valorFinal);
+        os.registrarEntrega(); // valida PRONTO → ENTREGUE e seta dataEntrega
+        osRepository.save(os);
+        historicoRepository.save(new HistoricoOS(null, osId,
+                statusAnterior, StatusOS.ENTREGUE, usuarioUsername, null, Instant.now()));
+    }
+
+    @Override
+    @Transactional
+    public OrdemDeServico atualizar(Long osId, String laudoTecnico,
+                                    LocalDate prazoEstimado, String observacoes) {
+        OrdemDeServico os = osRepository.findById(osId)
+                .orElseThrow(() -> new OrdemDeServicoNotFoundException(osId));
+        os.atualizarLaudo(laudoTecnico);
+        os.definirPrazo(prazoEstimado);
+        os.definirObservacoes(observacoes);
+        return osRepository.save(os);
+    }
+
+    @Override
+    @Transactional
+    public void remover(Long osId) {
+        OrdemDeServico os = osRepository.findById(osId)
+                .orElseThrow(() -> new OrdemDeServicoNotFoundException(osId));
+        if (os.getStatus() != StatusOS.CANCELADO && os.getStatus() != StatusOS.RECEBIDO) {
+            throw new OSNaoPodeSerRemovidaException(osId, os.getStatus());
+        }
+        osRepository.deleteById(osId);
     }
 }
