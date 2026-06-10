@@ -1,68 +1,57 @@
-# security-spring
+# target-music-spring
 
-Construí esse projeto para ter uma base sólida de autenticação e autorização que eu possa reutilizar em qualquer novo projeto Spring Boot — sem precisar reinventar a roda a cada vez.
+Sistema de gestão da **Target Music** — oficina de conserto e manutenção de instrumentos musicais.
 
-A ideia é simples: toda a lógica de segurança já está pronta e testada. Quando eu começo um projeto novo, só adiciono o domínio de negócio no `core/` e a infraestrutura de auth já funciona do primeiro deploy.
+Backend REST API — sem frontend neste repositório.
 
----
+## Stack
 
-## O que tem aqui
+- Java 21 + Spring Boot 4 + Arquitetura Hexagonal
+- PostgreSQL 16 + Flyway
+- Spring Security 6 (JWT, 2FA, OAuth2 Google)
+- Redis (cache, sessões, rate limiting)
+- SSE para notificações em tempo real
+- Prometheus + Grafana
+- Springdoc OpenAPI (Swagger UI)
+- JUnit 5 + Mockito + Testcontainers
 
-**Autenticação completa**
-JWT com refresh token opaco (hash SHA-256 no banco, plaintext nunca persiste), rotação a cada uso, detecção de reutilização com revogação automática de todas as sessões, blocklist por threshold `iat` no Redis. Login com Google via ID Token. 2FA com TOTP (Google Authenticator), backup codes e fluxo de duplo TOTP para elevação de privilégio DEV.
+## Como rodar
 
-**Autorização granular**
-RBAC com permissões individuais por role. Toda proteção via `@PreAuthorize("hasAuthority('...')")` — sem `hasRole()`, sem sessão HTTP. Hierarquia `ROLE_USER ⊂ ROLE_ADMIN ⊂ ROLE_DEV`.
-
-**Segurança de produção**
-Rate limiting por IP (Redis em hml/prod, in-memory em dev), bloqueio de conta por tentativas, verificação de email com código 12 chars (62 bits de entropia), troca de email com confirmação no novo endereço, reset de senha com token de uso único.
-
-**Infraestrutura**
-37 migrations Flyway, 7 schedulers com ShedLock, audit trail de todos os eventos, alertas de segurança por email, métricas Prometheus + dashboard Grafana provisionado automaticamente, feature flags em banco de dados, CLI administrativo.
-
----
-
-## Tecnologias
-
-| | |
-|---|---|
-| Java 21 + Spring Boot 4.0.6 | Arquitetura hexagonal (Ports & Adapters) |
-| PostgreSQL 16 + Flyway | Redis 7 (cache + blocklist + rate limit) |
-| JWT (JJWT 0.12.6) | BCrypt + AES-256-GCM (secret TOTP) |
-| JUnit 5 + Mockito + Testcontainers | ArchUnit (regras arquiteturais em teste) |
-| Docker Compose | Prometheus + Grafana |
-
----
-
-## Arquitetura
-
-O `core/` não importa Spring, JPA, Redis nem HTTP — apenas interfaces. O ArchUnit garante isso em tempo de teste.
-
-```
-adapter/in  (Controllers, DTOs)
-    ↓  UseCase interface
-core/  (domain, ports, services)
-    ↑  Repository/Port interface
-adapter/out  (JPA, Redis, JWT, Email, S3)
-```
-
-Trocar PostgreSQL por outro banco, Redis por Caffeine, S3 por storage local — nada disso toca o `core/`.
-
----
-
-## Rodar localmente
-
-Sem Docker, sem variáveis de ambiente — só Java 21:
+### Dev (H2 in-memory, sem Docker)
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-Sobe com H2 em memória. Swagger em `http://localhost:8080/swagger-ui.html`.
+API: `http://localhost:8090`  
+Swagger: `http://localhost:8090/swagger-ui.html`  
+H2 Console: `http://localhost:8090/h2-console`
 
-Usuários criados automaticamente: `admin / Admin@dev1` e `user / User@dev1`.
+### HML (PostgreSQL + Redis via Docker)
 
----
+```bash
+# Subir infraestrutura
+docker compose up -d
+
+# Subir aplicação
+SPRING_PROFILES_ACTIVE=hml \
+  ./mvnw spring-boot:run \
+  -Dspring-boot.run.jvmArguments="-Dserver.port=8090"
+```
+
+Grafana: `http://localhost:3001`  
+Prometheus: `http://localhost:9091`
+
+## Portas
+
+| Serviço | Porta |
+|---------|-------|
+| API | 8090 |
+| Actuator | 8091 |
+| PostgreSQL | 5434 |
+| Redis | 6381 |
+| Prometheus | 9091 |
+| Grafana | 3001 |
 
 ## Testes
 
@@ -70,17 +59,15 @@ Usuários criados automaticamente: `admin / Admin@dev1` e `user / User@dev1`.
 ./mvnw test
 ```
 
-69 arquivos de teste — unitários, integração (H2), testes de segurança, ArchUnit e Testcontainers (PostgreSQL real, opcional).
+## Documentação
 
----
+Ver pasta `docs/`:
 
-## Documentação detalhada
-
-A pasta `docs/` tem tudo mapeado: fluxos de autenticação, modelo de domínio, schema do banco, referência de API, configuração por ambiente e muito mais. Disponibilizo mediante contato.
-
----
-
-## Contato
-
-**Jeff Henryson**
-jeffhunbruey@gmail.com · (83) 99669-7177
+- [00 — Visão Geral](docs/00-overview.md)
+- [01 — Portas](docs/01-ports.md)
+- [02 — Modelo de Domínio](docs/02-domain-model.md)
+- [03 — Fluxo de Status das OS](docs/03-status-workflow.md)
+- [04 — Endpoints da API](docs/04-api-endpoints.md)
+- [05 — Integrações Externas](docs/05-integrations.md)
+- [06 — Roles e Permissões](docs/06-roles-permissions.md)
+- [08 — Roadmap de Implementação](docs/08-implementation-roadmap.md)
