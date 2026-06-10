@@ -115,16 +115,26 @@ Cada sprint entrega:
 
 ---
 
-## Sprint E — Roles e permissões de negócio
+## ✅ Sprint E — Roles e permissões de negócio — COMPLETO
 
 **Objetivo:** RBAC do negócio funcionando (ROLE_ATENDENTE, ROLE_TECNICO, ROLE_CLIENTE).
 
-| # | O que | Migration |
-|---|-------|-----------|
-| E1 | Permissões de negócio (CLIENTE_*, INSTRUMENTO_*, OS_*) | V48 |
-| E2 | Roles ROLE_ATENDENTE, ROLE_TECNICO, ROLE_CLIENTE + atribuição de permissões | V49 |
-| E3 | `@PreAuthorize` nos controllers | — |
-| E4 | Bootstrap dos roles no `DevRoleBootstrapConfig` | — |
+| # | O que | Migration | Status |
+|---|-------|-----------|--------|
+| E1 | Permissões de negócio (CLIENTE_*, INSTRUMENTO_*, OS_*) | V51 | ✅ |
+| E2 | Roles ROLE_ATENDENTE, ROLE_TECNICO, ROLE_CLIENTE + atribuição de permissões | V52 | ✅ |
+| E3 | `@PreAuthorize` nos controllers | — | ✅ |
+| E4 | Bootstrap dos roles no `DevRoleBootstrapConfig` | — | ✅ |
+
+**Testes (TDD):** ✅ 26 novos testes, total acumulado: **798 total**, 0 falhas
+- `DevRoleBootstrapIT` (4) — verifica roles e permissões corretas no banco após bootstrap
+- `RbacNegocioIT` (22) — verifica `@PreAuthorize`: 401 sem auth, 403 sem permissão, 200/404 com permissão
+
+**Permissões criadas:** CLIENTE_CREATE/READ/UPDATE/DELETE, INSTRUMENTO_CREATE/READ/UPDATE/DELETE,
+OS_CREATE/READ/UPDATE/STATUS/DELETE, OS_ASSIGN_TECNICO, OS_ORCAMENTO, OS_ORCAMENTO_APROVAR,
+OS_ORCAMENTO_RECUSAR, OS_ENTREGA
+
+**Commits:** `2c0fac4` → `5869173` → `8412a01` → `a9da1ec` → `bfc3a37`
 
 ---
 
@@ -165,5 +175,5 @@ Cada sprint entrega:
 | Sprint B — Clientes + Instrumentos | ✅ Completo | +43 → **714 total** |
 | Sprint C — OS básico | ✅ Completo | +29 → **743 total** |
 | Sprint D — Orçamento e entrega | ✅ Completo | +29 → **772 total** |
-| Sprint E — RBAC negócio | 🔲 Pendente | — |
+| Sprint E — RBAC negócio | ✅ Completo | +26 → **798 total** |
 | Sprint F — Portal cliente | 🔲 Pendente | — |
