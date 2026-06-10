@@ -102,7 +102,7 @@ Cada sprint entrega:
 
 ---
 
-## Sprint D — Orçamento e entrega
+## ✅ Sprint D — Orçamento e entrega — COMPLETO
 
 **Objetivo:** fluxo completo de orçamento (aprovar/recusar) e entrega.
 
@@ -164,6 +164,6 @@ Cada sprint entrega:
 | Sprint A — Fundação domínio | ✅ Completo | +48 |
 | Sprint B — Clientes + Instrumentos | ✅ Completo | +43 → **714 total** |
 | Sprint C — OS básico | ✅ Completo | +29 → **743 total** |
-| Sprint D — Orçamento e entrega | 🔲 Pendente | — |
+| Sprint D — Orçamento e entrega | ✅ Completo | +29 → **772 total** |
 | Sprint E — RBAC negócio | 🔲 Pendente | — |
 | Sprint F — Portal cliente | 🔲 Pendente | — |
