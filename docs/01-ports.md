@@ -48,7 +48,8 @@ interface OrdemDeServicoUseCase {
     PageResult<OrdemDeServico> listar(StatusOS status, Long clienteId,
                                       String tecnicoUsername, int page, int size);
     List<OrdemDeServico> listarPorCliente(Long clienteId);
-    void atribuirTecnico(Long osId, String tecnicoUsername);
+    void adicionarTecnico(Long osId, String tecnicoUsername);
+    void removerTecnico(Long osId, String tecnicoUsername);
     void atualizarLaudo(Long osId, String laudoTecnico);
     void definirOrcamento(Long osId, BigDecimal valor, LocalDate prazoEstimado);
     void aprovarOrcamento(Long osId, String usuarioUsername);
@@ -57,6 +58,22 @@ interface OrdemDeServicoUseCase {
     void registrarEntrega(Long osId, BigDecimal valorFinal, String usuarioUsername);
     void cancelar(Long osId, String usuarioUsername, String observacao);
     List<HistoricoOS> buscarHistorico(Long osId);
+}
+```
+
+### PecaUseCase
+
+```java
+interface PecaUseCase {
+    Peca criar(String nome, String descricao, BigDecimal precoUnitario, int quantidadeInicial);
+    Peca buscarPorId(Long id);
+    PageResult<Peca> listar(String search, boolean apenasAtivas, int page, int size);
+    Peca atualizar(Long id, String nome, String descricao, BigDecimal precoUnitario);
+    void darEntrada(Long id, int quantidade);
+    void desativar(Long id);
+    OSPeca adicionarNaOS(Long osId, Long pecaId, int quantidade, String tecnicoUsername);
+    void removerDaOS(Long osId, Long osPecaId);
+    List<OSPeca> listarPecasDaOS(Long osId);
 }
 ```
 
@@ -114,12 +131,34 @@ interface HistoricoOSRepository {
 }
 ```
 
+### PecaRepository
+
+```java
+interface PecaRepository {
+    Peca save(Peca peca);
+    Optional<Peca> findById(Long id);
+    PageResult<Peca> findAll(String search, boolean apenasAtivas, int page, int size);
+    void deleteById(Long id);
+}
+```
+
+### OSPecaRepository
+
+```java
+interface OSPecaRepository {
+    OSPeca save(OSPeca osPeca);
+    Optional<OSPeca> findById(Long id);
+    List<OSPeca> findByOsId(Long osId);
+    void deleteById(Long id);
+}
+```
+
 ### OSNumeroSequencePort
 
 ```java
 interface OSNumeroSequencePort {
-    String next(int year);   // retorna próximo número formatado "OS-YYYY-NNNN"
+    String next(int year);   // retorna "OS-YYYY-NNNN" com sequência global (não reinicia por ano)
 }
 ```
 
-Implementado via sequence PostgreSQL em hml/prod e contador H2 em dev.
+Implementado via sequence PostgreSQL em hml/prod e contador em tabela H2 em dev.

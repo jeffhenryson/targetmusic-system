@@ -14,24 +14,34 @@ Cada sprint entrega:
 
 ---
 
-## Sprint A — Fundação de domínio (V44–V47)
+## Sprint A — Fundação de domínio (V44–V50)
 
-**Objetivo:** banco + models do core prontos.
+**Objetivo:** banco + models do core prontos. Decisões de design:
+- Número de OS: sequência global (`OS-YYYY-NNNN`, nunca reinicia)
+- Técnicos por OS: múltiplos (tabela `os_tecnicos`)
+- Peças: estoque completo (`pecas` + `os_pecas`)
 
 | # | O que | Migration |
 |---|-------|-----------|
 | A1 | Tabela `clientes` | V44 |
 | A2 | Tabela `instrumentos` | V45 |
-| A3 | Tabela `ordens_de_servico` + sequência de número | V46 |
-| A4 | Tabela `historico_os` | V47 |
+| A3 | Tabela `ordens_de_servico` + sequence global | V46 |
+| A4 | Tabela `os_tecnicos` (junction) | V47 |
+| A5 | Tabela `historico_os` | V48 |
+| A6 | Tabela `pecas` (estoque) | V49 |
+| A7 | Tabela `os_pecas` (peças utilizadas por OS) | V50 |
 
 **Entregáveis de código:**
-- `TipoInstrumento` (enum)
-- `StatusOS` (enum) com `transicaoValida()`
-- `Cliente`, `Instrumento`, `OrdemDeServico`, `HistoricoOS` (domain models)
-- `TransicaoStatusInvalidaException`, `ClienteNotFoundException`, etc.
+- `TipoInstrumento`, `StatusOS` (enums)
+- `Cliente`, `Instrumento`, `OrdemDeServico`, `HistoricoOS`, `Peca`, `OSPeca` (domain models)
+- `TransicaoStatusInvalidaException`, `ClienteNotFoundException`, `InstrumentoNotFoundException`,
+  `OrdemDeServicoNotFoundException`, `ClienteTemOSEmAbertoException`,
+  `InstrumentoTemOSEmAbertoException`, `EstoqueInsuficienteException`, `PecaNotFoundException`
 
-**Testes:** `StatusOSTest` cobrindo todas as transições válidas e inválidas.
+**Testes (TDD):**
+- `StatusOSTest` — todas as 14 transições (válidas e inválidas)
+- `OrdemDeServicoTest` — `abrir()`, `mudarStatus()`, `adicionarTecnico()`, `registrarEntrega()`
+- `PecaTest` — `darSaida()` bloqueia se estoque < quantidade, `darEntrada()`, `desativar()`
 
 ---
 

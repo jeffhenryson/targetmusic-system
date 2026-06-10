@@ -82,20 +82,20 @@ class Instrumento {
 ```java
 class OrdemDeServico {
     Long id
-    String numero          // gerado: "OS-YYYY-NNNN" (ex: OS-2026-0001)
+    String numero              // gerado: "OS-YYYY-NNNN" com sequência global (ex: OS-2026-0001)
     StatusOS status
     Long instrumentoId
     Long clienteId
-    String atendenteUsername     // quem abriu a OS
-    String tecnicoUsername       // nullable — técnico responsável
-    String descricaoProblema     // relatado pelo cliente no recebimento
-    String laudoTecnico          // nullable — diagnóstico técnico
-    BigDecimal valorOrcamento    // nullable — valor proposto antes da aprovação
-    BigDecimal valorFinal        // nullable — valor cobrado na entrega
-    LocalDate prazoEstimado      // nullable
+    String atendenteUsername   // quem abriu a OS
+    Set<String> tecnicosUsernames  // técnicos atribuídos — múltiplos, gerenciados via os_tecnicos
+    String descricaoProblema   // relatado pelo cliente no recebimento
+    String laudoTecnico        // nullable — diagnóstico técnico
+    BigDecimal valorOrcamento  // nullable — valor proposto antes da aprovação
+    BigDecimal valorFinal      // nullable — valor cobrado na entrega
+    LocalDate prazoEstimado    // nullable
     Instant dataRecebimento
-    Instant dataEntrega          // nullable — preenchido ao mudar para ENTREGUE
-    String observacoes           // nullable
+    Instant dataEntrega        // nullable — preenchido ao mudar para ENTREGUE
+    String observacoes         // nullable
     Instant createdAt
     Instant updatedAt
 
@@ -103,13 +103,58 @@ class OrdemDeServico {
     static OrdemDeServico fromPersisted(...)
 
     // operações de domínio
-    void atribuirTecnico(tecnicoUsername)
+    void adicionarTecnico(tecnicoUsername)
+    void removerTecnico(tecnicoUsername)
     void atualizarLaudo(laudoTecnico)
     void definirOrcamento(valor)
     void definirPrazo(prazoEstimado)
-    void mudarStatus(novoStatus)   // valida transição via StatusOS.transicaoValida()
+    void mudarStatus(novoStatus)   // valida via StatusOS.transicaoValida() → lança TransicaoStatusInvalidaException
     void registrarEntrega()        // dataEntrega = now, status = ENTREGUE
     void definirValorFinal(valor)
+}
+```
+
+---
+
+## Peca
+
+```java
+class Peca {
+    Long id
+    String nome
+    String descricao           // nullable
+    int quantidadeEstoque      // nunca negativo — lança EstoqueInsuficienteException se tentar
+    BigDecimal precoUnitario
+    boolean ativo              // false = desativada (soft delete — OS existentes mantêm referência)
+    Instant createdAt
+    Instant updatedAt
+
+    static Peca criar(nome, precoUnitario)
+    static Peca fromPersisted(...)
+
+    void darEntrada(quantidade)       // quantidadeEstoque += quantidade
+    void darSaida(quantidade)         // quantidadeEstoque -= quantidade; lança se < 0
+    void atualizarPreco(novoPreco)
+    void desativar()
+}
+```
+
+---
+
+## OSPeca (peças utilizadas em uma OS)
+
+```java
+record OSPeca(
+    Long id,
+    Long osId,
+    Long pecaId,
+    String pecaNome,              // snapshot do nome — preserva histórico se peça for renomeada
+    int quantidade,
+    BigDecimal precoUnitario,     // snapshot do preço no momento do uso
+    String tecnicoUsername,       // quem adicionou a peça à OS
+    Instant addedAt
+) {
+    BigDecimal subtotal()  // quantidade * precoUnitario
 }
 ```
 
@@ -163,7 +208,8 @@ record HistoricoOS(
 | `OrdemDeServico buscarPorNumero(numero)` | Busca pelo número humano (OS-YYYY-NNNN) |
 | `PageResult<OrdemDeServico> listar(status, clienteId, tecnicoUsername, page, size)` | Listagem filtrada |
 | `List<OrdemDeServico> listarPorCliente(clienteId)` | Todas as OS de um cliente |
-| `void atribuirTecnico(osId, tecnicoUsername)` | Atribui técnico responsável |
+| `void adicionarTecnico(osId, tecnicoUsername)` | Adiciona técnico à OS |
+| `void removerTecnico(osId, tecnicoUsername)` | Remove técnico da OS |
 | `void atualizarLaudo(osId, laudoTecnico)` | Técnico registra diagnóstico |
 | `void definirOrcamento(osId, valor, prazoEstimado)` | Define orçamento e muda para AGUARDANDO_APROVACAO |
 | `void aprovarOrcamento(osId)` | Muda para EM_MANUTENCAO |
@@ -172,3 +218,17 @@ record HistoricoOS(
 | `void registrarEntrega(osId, valorFinal)` | Muda para ENTREGUE, registra valor final e data |
 | `void cancelar(osId, observacao)` | Cancela a OS |
 | `List<HistoricoOS> buscarHistorico(osId)` | Histórico de mudanças de status |
+
+### PecaUseCase
+
+| Método | Descrição |
+|--------|-----------|
+| `Peca criar(nome, descricao, precoUnitario, quantidadeInicial)` | Cadastra peça no estoque |
+| `Peca buscarPorId(id)` | Busca por ID |
+| `PageResult<Peca> listar(search, apenasAtivas, page, size)` | Listagem paginada |
+| `Peca atualizar(id, nome, descricao, precoUnitario)` | Atualiza dados da peça |
+| `void darEntrada(id, quantidade)` | Adiciona ao estoque |
+| `void desativar(id)` | Soft-delete |
+| `OSPeca adicionarNaOS(osId, pecaId, quantidade, tecnicoUsername)` | Reserva peça para uma OS (debita estoque) |
+| `void removerDaOS(osId, osPecaId)` | Remove peça da OS (devolve ao estoque) |
+| `List<OSPeca> listarPecasDaOS(osId)` | Peças utilizadas em uma OS |
