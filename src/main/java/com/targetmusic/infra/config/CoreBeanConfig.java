@@ -9,10 +9,15 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.targetmusic.core.ports.in.ClienteUseCase;
 import com.targetmusic.core.ports.in.InstrumentoUseCase;
+import com.targetmusic.core.ports.in.OrdemDeServicoUseCase;
 import com.targetmusic.core.ports.out.cliente.ClienteRepository;
 import com.targetmusic.core.ports.out.instrumento.InstrumentoRepository;
+import com.targetmusic.core.ports.out.os.HistoricoOSRepository;
+import com.targetmusic.core.ports.out.os.OSNumeroSequencePort;
+import com.targetmusic.core.ports.out.os.OrdemDeServicoRepository;
 import com.targetmusic.core.service.ClienteService;
 import com.targetmusic.core.service.InstrumentoService;
+import com.targetmusic.core.service.OrdemDeServicoService;
 import com.targetmusic.core.ports.in.AuditLogsUseCase;
 import com.targetmusic.core.ports.in.AuthUseCase;
 import com.targetmusic.core.ports.in.AvatarUseCase;
@@ -206,6 +211,16 @@ class CoreBeanConfig {
     InstrumentoUseCase instrumentoUseCase(InstrumentoRepository instrumentoRepository,
                                            ClienteRepository clienteRepository) {
         return new InstrumentoService(instrumentoRepository, clienteRepository);
+    }
+
+    @Bean
+    OrdemDeServicoUseCase ordemDeServicoUseCase(OrdemDeServicoRepository osRepository,
+                                                 HistoricoOSRepository historicoRepository,
+                                                 OSNumeroSequencePort sequencePort,
+                                                 ClienteRepository clienteRepository,
+                                                 InstrumentoRepository instrumentoRepository) {
+        return new OrdemDeServicoService(osRepository, historicoRepository, sequencePort,
+                clienteRepository, instrumentoRepository);
     }
 
     @Bean
