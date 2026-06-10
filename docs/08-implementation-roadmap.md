@@ -82,18 +82,23 @@ Cada sprint entrega:
 
 ---
 
-## Sprint C — Ordens de Serviço (abertura + fluxo básico)
+## ✅ Sprint C — Ordens de Serviço (abertura + fluxo básico) — COMPLETO
 
 **Objetivo:** abrir OS, atribuir técnico, mudar status simples.
 
-| Layer | O que implementar |
-|-------|-------------------|
-| Port OUT | `OrdemDeServicoRepository`, `HistoricoOSRepository`, `OSNumeroSequencePort` |
-| Port IN | `OrdemDeServicoUseCase` (métodos: abrir, atribuirTecnico, atualizarStatus, buscarHistorico) |
-| Adapter OUT | `OrdemDeServicoRepositoryImpl`, `HistoricoOSRepositoryImpl`, `OSNumeroSequenceAdapter` |
-| Adapter IN | `OrdemDeServicoController` (POST /os, GET /os, GET /os/{id}, PATCH /os/{id}/tecnico, PATCH /os/{id}/status) |
-| Testes unit | `OrdemDeServicoServiceTest` (todas as transições válidas e inválidas) |
-| Testes IT | `OrdemDeServicoControllerIT` (RBAC por role, geração de número, histórico) |
+| Layer | O que implementar | Status |
+|-------|-------------------|--------|
+| Port OUT | `OrdemDeServicoRepository`, `HistoricoOSRepository`, `OSNumeroSequencePort` | ✅ |
+| Port IN | `OrdemDeServicoUseCase` (métodos: abrir, adicionarTecnico, removerTecnico, atualizarStatus, buscarHistorico, listar, listarPorCliente, buscarPorId, buscarPorNumero) | ✅ |
+| Adapter OUT | `OrdemDeServicoRepositoryImpl`, `HistoricoOSRepositoryImpl`, `OSNumeroSequenceAdapter` | ✅ |
+| Adapter IN | `OrdemDeServicoController` (POST /os, GET /os, GET /os/{id}, GET /os/numero/{n}, PATCH /os/{id}/tecnico, PATCH /os/{id}/status, GET /os/{id}/historico) | ✅ |
+| ClienteController | GET /clientes/{id}/os | ✅ |
+| Testes unit | `OrdemDeServicoServiceTest` (18 testes) | ✅ |
+| Testes controller | `OrdemDeServicoControllerTest` (11 testes) | ✅ |
+
+**Testes (TDD):** ✅ 29 novos testes, total acumulado: **743 total**, 0 falhas
+
+**Commits:** `22cb596` → `7dbf837` → `6e6bd69` → `a4c532f` → `9e0db99` → `846b313` → `a09f246`
 
 ---
 
@@ -158,7 +163,7 @@ Cada sprint entrega:
 | Template segurança (V1–V43) | ✅ Completo | 671 |
 | Sprint A — Fundação domínio | ✅ Completo | +48 |
 | Sprint B — Clientes + Instrumentos | ✅ Completo | +43 → **714 total** |
-| Sprint C — OS básico | 🔲 Pendente | — |
+| Sprint C — OS básico | ✅ Completo | +29 → **743 total** |
 | Sprint D — Orçamento e entrega | 🔲 Pendente | — |
 | Sprint E — RBAC negócio | 🔲 Pendente | — |
 | Sprint F — Portal cliente | 🔲 Pendente | — |
