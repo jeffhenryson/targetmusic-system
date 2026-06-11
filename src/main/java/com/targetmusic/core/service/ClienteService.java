@@ -8,6 +8,12 @@ import com.targetmusic.core.ports.in.ClienteUseCase;
 import com.targetmusic.core.ports.out.cliente.ClienteRepository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 public class ClienteService implements ClienteUseCase {
 
     private final ClienteRepository clienteRepository;
@@ -30,6 +36,25 @@ public class ClienteService implements ClienteUseCase {
     public Cliente buscarPorId(Long id) {
         return clienteRepository.findById(id)
                 .orElseThrow(() -> new ClienteNotFoundException(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Cliente> buscarPorUserId(Long userId) {
+        return clienteRepository.findByUserId(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Cliente> buscarClienteDoUsuario(String username) {
+        return clienteRepository.findByUserUsername(username);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Cliente> buscarPorIds(Collection<Long> ids) {
+        return clienteRepository.findAllByIdIn(ids).stream()
+                .collect(Collectors.toMap(Cliente::getId, Function.identity()));
     }
 
     @Override

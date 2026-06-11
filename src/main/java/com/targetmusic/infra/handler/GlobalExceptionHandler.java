@@ -1,5 +1,6 @@
 package com.targetmusic.infra.handler;
 
+import com.targetmusic.core.domain.exception.cliente.ClienteNaoVinculadoException;
 import com.targetmusic.core.domain.exception.cliente.ClienteNotFoundException;
 import com.targetmusic.core.domain.exception.cliente.ClienteTemOSEmAbertoException;
 import com.targetmusic.core.domain.exception.estoque.EstoqueInsuficienteException;
@@ -309,6 +310,11 @@ public class GlobalExceptionHandler {
             message += ". Valores aceitos: " + valid;
         }
         return error(HttpStatus.BAD_REQUEST, message, "INVALID_ENUM_VALUE", req);
+    }
+
+    @ExceptionHandler(ClienteNaoVinculadoException.class)
+    public ResponseEntity<ApiError> handleClienteNaoVinculado(ClienteNaoVinculadoException ex, HttpServletRequest req) {
+        return error(HttpStatus.FORBIDDEN, "Acesso negado — usuário sem cliente vinculado", "CLIENTE_NAO_VINCULADO", req);
     }
 
     @ExceptionHandler(ClienteNotFoundException.class)

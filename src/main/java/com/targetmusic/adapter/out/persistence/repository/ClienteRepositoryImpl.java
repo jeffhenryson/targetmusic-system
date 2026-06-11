@@ -11,6 +11,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -41,6 +43,20 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     @Transactional(readOnly = true)
     public Optional<Cliente> findByUserId(Long userId) {
         return jpaRepo.findByUserId(userId).map(converter::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Cliente> findByUserUsername(String username) {
+        return jpaRepo.findByUserUsername(username).map(converter::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Cliente> findAllByIdIn(Collection<Long> ids) {
+        return jpaRepo.findAllById(ids).stream()
+                .map(converter::toDomain)
+                .toList();
     }
 
     @Override

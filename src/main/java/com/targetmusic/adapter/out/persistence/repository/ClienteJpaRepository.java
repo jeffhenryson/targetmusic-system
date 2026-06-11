@@ -13,6 +13,10 @@ public interface ClienteJpaRepository extends JpaRepository<ClienteEntity, Long>
 
     Optional<ClienteEntity> findByUserId(Long userId);
 
+    @Query(value = "SELECT c.* FROM clientes c JOIN users u ON c.user_id = u.id WHERE u.username = :username",
+           nativeQuery = true)
+    Optional<ClienteEntity> findByUserUsername(@Param("username") String username);
+
     @Query("SELECT c FROM ClienteEntity c WHERE :search IS NULL OR " +
            "LOWER(c.nome) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(c.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
