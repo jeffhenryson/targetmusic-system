@@ -2,11 +2,16 @@ package com.targetmusic.adapter.out.persistence.repository;
 
 import com.targetmusic.adapter.out.persistence.converter.InstrumentoEntityConverter;
 import com.targetmusic.adapter.out.persistence.entity.InstrumentoEntity;
+import com.targetmusic.core.domain.model.PageResult;
 import com.targetmusic.core.domain.model.instrumento.Instrumento;
 import com.targetmusic.core.ports.out.instrumento.InstrumentoRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,10 +41,24 @@ public class InstrumentoRepositoryImpl implements InstrumentoRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Instrumento> findByClienteId(Long clienteId) {
-        return jpaRepo.findByClienteId(clienteId).stream()
+    public List<Instrumento> findAllByIdIn(Collection<Long> ids) {
+        return jpaRepo.findAllById(ids).stream()
                 .map(converter::toDomain)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResult<Instrumento> findByClienteId(Long clienteId, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        Page<InstrumentoEntity> result = jpaRepo.findByClienteId(clienteId, pageable);
+        return new PageResult<>(
+                result.getContent().stream().map(converter::toDomain).toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.targetmusic.core.service;
 import com.targetmusic.core.domain.exception.cliente.ClienteNotFoundException;
 import com.targetmusic.core.domain.exception.instrumento.InstrumentoNotFoundException;
 import com.targetmusic.core.domain.exception.instrumento.InstrumentoTemOSEmAbertoException;
+import com.targetmusic.core.domain.model.PageResult;
 import com.targetmusic.core.domain.model.instrumento.Instrumento;
 import com.targetmusic.core.domain.model.instrumento.TipoInstrumento;
 import com.targetmusic.core.ports.in.InstrumentoUseCase;
@@ -10,7 +11,10 @@ import com.targetmusic.core.ports.out.cliente.ClienteRepository;
 import com.targetmusic.core.ports.out.instrumento.InstrumentoRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class InstrumentoService implements InstrumentoUseCase {
 
@@ -43,10 +47,17 @@ public class InstrumentoService implements InstrumentoUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Instrumento> listarPorCliente(Long clienteId) {
+    public Map<Long, Instrumento> buscarPorIds(Collection<Long> ids) {
+        return instrumentoRepository.findAllByIdIn(ids).stream()
+                .collect(Collectors.toMap(Instrumento::getId, Function.identity()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResult<Instrumento> listarPorCliente(Long clienteId, int page, int size) {
         clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new ClienteNotFoundException(clienteId));
-        return instrumentoRepository.findByClienteId(clienteId);
+        return instrumentoRepository.findByClienteId(clienteId, page, size);
     }
 
     @Override

@@ -12,7 +12,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -62,10 +61,16 @@ public class OrdemDeServicoRepositoryImpl implements OrdemDeServicoRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrdemDeServico> findByClienteId(Long clienteId) {
-        return jpaRepo.findByClienteId(clienteId).stream()
-                .map(converter::toDomain)
-                .toList();
+    public PageResult<OrdemDeServico> findByClienteId(Long clienteId, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<OrdemDeServicoEntity> result = jpaRepo.findByClienteId(clienteId, pageable);
+        return new PageResult<>(
+                result.getContent().stream().map(converter::toDomain).toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 
     @Override

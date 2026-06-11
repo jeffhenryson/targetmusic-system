@@ -16,7 +16,7 @@ public interface OrdemDeServicoUseCase {
     OrdemDeServico buscarPorId(Long id);
     OrdemDeServico buscarPorNumero(String numero);
     PageResult<OrdemDeServico> listar(StatusOS status, Long clienteId, String tecnicoUsername, int page, int size);
-    List<OrdemDeServico> listarPorCliente(Long clienteId);
+    PageResult<OrdemDeServico> listarPorCliente(Long clienteId, int page, int size);
     void adicionarTecnico(Long osId, String tecnicoUsername);
     void removerTecnico(Long osId, String tecnicoUsername);
     void atualizarStatus(Long osId, StatusOS novoStatus, String usuarioUsername, String observacao);

@@ -87,10 +87,10 @@ public class OrdemDeServicoService implements OrdemDeServicoUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrdemDeServico> listarPorCliente(Long clienteId) {
+    public PageResult<OrdemDeServico> listarPorCliente(Long clienteId, int page, int size) {
         clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new ClienteNotFoundException(clienteId));
-        return osRepository.findByClienteId(clienteId);
+        return osRepository.findByClienteId(clienteId, page, size);
     }
 
     @Override
