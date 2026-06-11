@@ -45,6 +45,7 @@ public class OrdemDeServicoEntity {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "os_tecnicos", joinColumns = @JoinColumn(name = "os_id"))
     @Column(name = "tecnico_username", length = 80)
+    @org.hibernate.annotations.BatchSize(size = 25)
     private Set<String> tecnicosUsernames = new HashSet<>();
 
     @Column(name = "descricao_problema", nullable = false, columnDefinition = "TEXT")
