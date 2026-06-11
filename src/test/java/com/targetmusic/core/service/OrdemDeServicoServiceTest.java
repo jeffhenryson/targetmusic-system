@@ -149,19 +149,20 @@ class OrdemDeServicoServiceTest {
 
     @Test
     void listarPorCliente_valida_cliente_e_delega() {
+        PageResult<OrdemDeServico> page = new PageResult<>(List.of(osRecebida()), 0, 20, 1L, 1);
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(clienteStub()));
-        when(osRepository.findByClienteId(1L)).thenReturn(List.of(osRecebida()));
+        when(osRepository.findByClienteId(1L, 0, 20)).thenReturn(page);
 
-        List<OrdemDeServico> result = service.listarPorCliente(1L);
+        PageResult<OrdemDeServico> result = service.listarPorCliente(1L, 0, 20);
 
-        assertThat(result).hasSize(1);
+        assertThat(result.content()).hasSize(1);
     }
 
     @Test
     void listarPorCliente_lanca_exception_quando_cliente_nao_existe() {
         when(clienteRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.listarPorCliente(99L))
+        assertThatThrownBy(() -> service.listarPorCliente(99L, 0, 20))
                 .isInstanceOf(ClienteNotFoundException.class);
     }
 

@@ -8,6 +8,7 @@ import com.targetmusic.core.domain.exception.instrumento.InstrumentoNotFoundExce
 import com.targetmusic.core.domain.exception.instrumento.InstrumentoTemOSEmAbertoException;
 import com.targetmusic.core.domain.model.instrumento.Instrumento;
 import com.targetmusic.core.domain.model.instrumento.TipoInstrumento;
+import com.targetmusic.core.ports.in.ClienteUseCase;
 import com.targetmusic.core.ports.in.InstrumentoUseCase;
 import com.targetmusic.infra.handler.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,13 +28,15 @@ public class InstrumentoControllerTest {
 
     private MockMvc mockMvc;
     private InstrumentoUseCase instrumentoUseCase;
+    private ClienteUseCase clienteUseCase;
     private final ObjectMapper om = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @BeforeEach
     void setup() {
         instrumentoUseCase = mock(InstrumentoUseCase.class);
+        clienteUseCase = mock(ClienteUseCase.class);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new InstrumentoController(instrumentoUseCase, new InstrumentoDTOConverter()))
+                .standaloneSetup(new InstrumentoController(instrumentoUseCase, clienteUseCase, new InstrumentoDTOConverter()))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }

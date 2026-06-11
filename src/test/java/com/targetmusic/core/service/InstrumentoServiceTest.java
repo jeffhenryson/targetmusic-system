@@ -14,8 +14,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.targetmusic.core.domain.model.PageResult;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,20 +88,21 @@ class InstrumentoServiceTest {
 
     @Test
     void listarPorCliente_valida_cliente_e_delega_ao_repositorio() {
+        PageResult<Instrumento> page = new PageResult<>(List.of(instrumentoStub(1L)), 0, 20, 1L, 1);
         when(clienteRepository.findById(1L)).thenReturn(Optional.of(clienteStub(1L)));
-        when(instrumentoRepository.findByClienteId(1L)).thenReturn(List.of(instrumentoStub(1L)));
+        when(instrumentoRepository.findByClienteId(1L, 0, 20)).thenReturn(page);
 
-        List<Instrumento> result = instrumentoService.listarPorCliente(1L);
+        PageResult<Instrumento> result = instrumentoService.listarPorCliente(1L, 0, 20);
 
-        assertThat(result).hasSize(1);
-        verify(instrumentoRepository).findByClienteId(1L);
+        assertThat(result.content()).hasSize(1);
+        verify(instrumentoRepository).findByClienteId(1L, 0, 20);
     }
 
     @Test
     void listarPorCliente_lanca_ClienteNotFoundException_quando_cliente_inexistente() {
         when(clienteRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> instrumentoService.listarPorCliente(99L))
+        assertThatThrownBy(() -> instrumentoService.listarPorCliente(99L, 0, 20))
                 .isInstanceOf(ClienteNotFoundException.class);
     }
 
@@ -146,6 +149,20 @@ class InstrumentoServiceTest {
         assertThatThrownBy(() -> instrumentoService.remover(1L))
                 .isInstanceOf(InstrumentoTemOSEmAbertoException.class);
         verify(instrumentoRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void buscarPorIds_retorna_mapa_indexado_por_id() {
+        Instrumento i1 = instrumentoStub(1L);
+        Instrumento i2 = Instrumento.fromPersisted(2L, TipoInstrumento.BAIXO, "Gibson", "SG",
+                "SN002", "Black", null, 1L, Instant.now());
+        when(instrumentoRepository.findAllByIdIn(List.of(1L, 2L))).thenReturn(List.of(i1, i2));
+
+        Map<Long, Instrumento> result = instrumentoService.buscarPorIds(List.of(1L, 2L));
+
+        assertThat(result).containsKeys(1L, 2L);
+        assertThat(result.get(1L).getMarca()).isEqualTo("Fender");
+        assertThat(result.get(2L).getMarca()).isEqualTo("Gibson");
     }
 
     @Test

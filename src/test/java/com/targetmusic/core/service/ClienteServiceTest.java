@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -134,6 +135,59 @@ class ClienteServiceTest {
 
         assertThatThrownBy(() -> clienteService.remover(99L))
                 .isInstanceOf(ClienteNotFoundException.class);
+    }
+
+    @Test
+    void buscarClienteDoUsuario_delega_ao_repositorio_por_username() {
+        Cliente c = Cliente.fromPersisted(1L, "João", "11999990000", null, null, null, null, null, Instant.now());
+        when(clienteRepository.findByUserUsername("joao")).thenReturn(Optional.of(c));
+
+        Optional<Cliente> result = clienteService.buscarClienteDoUsuario("joao");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(1L);
+        verify(clienteRepository).findByUserUsername("joao");
+    }
+
+    @Test
+    void buscarClienteDoUsuario_retorna_empty_quando_username_sem_cliente() {
+        when(clienteRepository.findByUserUsername("desconhecido")).thenReturn(Optional.empty());
+
+        assertThat(clienteService.buscarClienteDoUsuario("desconhecido")).isEmpty();
+    }
+
+    @Test
+    void buscarPorUserId_retorna_optional_do_repositorio() {
+        Cliente c = Cliente.fromPersisted(1L, "João", "11999990000", null, null, null, null, null, Instant.now());
+        when(clienteRepository.findByUserId(42L)).thenReturn(Optional.of(c));
+
+        Optional<Cliente> result = clienteService.buscarPorUserId(42L);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(1L);
+        verify(clienteRepository).findByUserId(42L);
+    }
+
+    @Test
+    void buscarPorUserId_retorna_empty_quando_nao_vinculado() {
+        when(clienteRepository.findByUserId(99L)).thenReturn(Optional.empty());
+
+        Optional<Cliente> result = clienteService.buscarPorUserId(99L);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void buscarPorIds_retorna_mapa_indexado_por_id() {
+        Cliente c1 = Cliente.fromPersisted(1L, "Ana", "11000000001", null, null, null, null, null, Instant.now());
+        Cliente c2 = Cliente.fromPersisted(2L, "Bob", "11000000002", null, null, null, null, null, Instant.now());
+        when(clienteRepository.findAllByIdIn(List.of(1L, 2L))).thenReturn(List.of(c1, c2));
+
+        Map<Long, Cliente> result = clienteService.buscarPorIds(List.of(1L, 2L));
+
+        assertThat(result).containsKeys(1L, 2L);
+        assertThat(result.get(1L).getNome()).isEqualTo("Ana");
+        assertThat(result.get(2L).getNome()).isEqualTo("Bob");
     }
 
     @Test

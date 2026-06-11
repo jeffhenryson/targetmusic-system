@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -100,8 +101,8 @@ class OrdemDeServicoControllerTest {
         OrdemDeServico os = osStub();
         PageResult<OrdemDeServico> page = new PageResult<>(List.of(os), 0, 20, 1L, 1);
         when(osUseCase.listar(null, null, null, 0, 20)).thenReturn(page);
-        when(clienteUseCase.buscarPorId(1L)).thenReturn(clienteStub());
-        when(instrumentoUseCase.buscarPorId(1L)).thenReturn(instrumentoStub());
+        when(clienteUseCase.buscarPorIds(any())).thenReturn(Map.of(1L, clienteStub()));
+        when(instrumentoUseCase.buscarPorIds(any())).thenReturn(Map.of(1L, instrumentoStub()));
 
         mockMvc.perform(get("/os"))
                 .andExpect(status().isOk())

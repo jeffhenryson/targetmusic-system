@@ -165,10 +165,11 @@ public class ClienteControllerTest {
     void listarInstrumentos_retorna_200_com_lista() throws Exception {
         Instrumento inst = Instrumento.fromPersisted(1L, TipoInstrumento.GUITARRA, "Fender",
                 "Stratocaster", "SN001", "Sunburst", null, 1L, Instant.now());
-        when(instrumentoUseCase.listarPorCliente(1L)).thenReturn(List.of(inst));
+        PageResult<Instrumento> page = new PageResult<>(List.of(inst), 0, 20, 1L, 1);
+        when(instrumentoUseCase.listarPorCliente(1L, 0, 20)).thenReturn(page);
 
         mockMvc.perform(get("/clientes/1/instrumentos"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].marca").value("Fender"));
+                .andExpect(jsonPath("$.content[0].marca").value("Fender"));
     }
 }
