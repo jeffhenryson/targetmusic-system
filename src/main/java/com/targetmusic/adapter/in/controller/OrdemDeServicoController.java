@@ -10,6 +10,7 @@ import com.targetmusic.adapter.in.dtos.request.OSUpdateRequest;
 import com.targetmusic.adapter.in.dtos.request.RecusarOrcamentoRequest;
 import com.targetmusic.adapter.in.dtos.response.HistoricoOSResponse;
 import com.targetmusic.adapter.in.dtos.response.OSResponse;
+import com.targetmusic.core.domain.exception.cliente.ClienteNaoVinculadoException;
 import com.targetmusic.core.domain.model.PageResult;
 import com.targetmusic.core.domain.model.cliente.Cliente;
 import com.targetmusic.core.domain.model.instrumento.Instrumento;
@@ -27,6 +28,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/os")
@@ -66,25 +70,51 @@ public class OrdemDeServicoController {
             @RequestParam(required = false) Long clienteId,
             @RequestParam(required = false) String tecnicoUsername,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
         int capped = Math.min(size, 100);
-        PageResult<OrdemDeServico> result = osUseCase.listar(status, clienteId, tecnicoUsername, page, capped);
+        Long filtroClienteId = isCliente(authentication)
+                ? resolverClienteId(authentication)
+                : clienteId;
+        PageResult<OrdemDeServico> result = osUseCase.listar(status, filtroClienteId, tecnicoUsername, page, capped);
+
+        Set<Long> clienteIds = result.content().stream().map(OrdemDeServico::getClienteId).collect(Collectors.toSet());
+        Set<Long> instrumentoIds = result.content().stream().map(OrdemDeServico::getInstrumentoId).collect(Collectors.toSet());
+        Map<Long, Cliente> clientesMap = clienteUseCase.buscarPorIds(clienteIds);
+        Map<Long, Instrumento> instrumentosMap = instrumentoUseCase.buscarPorIds(instrumentoIds);
+
         PageResult<OSResponse> response = new PageResult<>(
-                result.content().stream().map(this::toResponse).toList(),
+                result.content().stream()
+                        .map(os -> converter.toResponse(os, instrumentosMap.get(os.getInstrumentoId()), clientesMap.get(os.getClienteId())))
+                        .toList(),
                 result.page(), result.size(), result.totalElements(), result.totalPages());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('OS_READ')")
-    public ResponseEntity<OSResponse> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(toResponse(osUseCase.buscarPorId(id)));
+    public ResponseEntity<OSResponse> buscarPorId(@PathVariable Long id, Authentication authentication) {
+        OrdemDeServico os = osUseCase.buscarPorId(id);
+        if (isCliente(authentication)) {
+            Long meuClienteId = resolverClienteId(authentication);
+            if (!os.getClienteId().equals(meuClienteId)) {
+                throw new org.springframework.security.access.AccessDeniedException("Acesso negado");
+            }
+        }
+        return ResponseEntity.ok(toResponse(os));
     }
 
     @GetMapping("/numero/{numero}")
     @PreAuthorize("hasAuthority('OS_READ')")
-    public ResponseEntity<OSResponse> buscarPorNumero(@PathVariable String numero) {
-        return ResponseEntity.ok(toResponse(osUseCase.buscarPorNumero(numero)));
+    public ResponseEntity<OSResponse> buscarPorNumero(@PathVariable String numero, Authentication authentication) {
+        OrdemDeServico os = osUseCase.buscarPorNumero(numero);
+        if (isCliente(authentication)) {
+            Long meuClienteId = resolverClienteId(authentication);
+            if (!os.getClienteId().equals(meuClienteId)) {
+                throw new org.springframework.security.access.AccessDeniedException("Acesso negado");
+            }
+        }
+        return ResponseEntity.ok(toResponse(os));
     }
 
     @PatchMapping("/{id}/tecnico")
@@ -177,6 +207,17 @@ public class OrdemDeServicoController {
     public ResponseEntity<Void> remover(@PathVariable Long id) {
         osUseCase.remover(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private boolean isCliente(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_CLIENTE".equals(a.getAuthority()));
+    }
+
+    private Long resolverClienteId(Authentication authentication) {
+        return clienteUseCase.buscarClienteDoUsuario(authentication.getName())
+                .orElseThrow(() -> new ClienteNaoVinculadoException(authentication.getName()))
+                .getId();
     }
 
     private OSResponse toResponse(OrdemDeServico os) {
