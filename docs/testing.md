@@ -4,12 +4,12 @@
 
 | Categoria | Quantidade | Tecnologia principal |
 |-----------|-----------|----------------------|
-| Unit tests | ~54 | JUnit 5 + Mockito |
-| Integration tests (`*IT`) | 10 | JUnit 5 + Spring Boot Test + MockMvc |
+| Unit tests | ~62 | JUnit 5 + Mockito |
+| Integration tests (`*IT`) | 12 | JUnit 5 + Spring Boot Test + MockMvc |
 | Testcontainers (PostgreSQL real) | 1 | Testcontainers + `@EnabledIfEnvironmentVariable` |
 | ArchUnit (regras arquiteturais) | 1 | ArchUnit |
 
-Total: ~82 arquivos de teste.
+Total: ~92 arquivos de teste, **807 métodos de teste** (última execução com `-Djacoco.skip=true`).
 
 ---
 
@@ -19,12 +19,17 @@ Total: ~82 arquivos de teste.
 # Todos os testes (unit + ITs com H2)
 ./mvnw test
 
+# Todos os testes — Java 25 + JaCoCo incompatível (class file major version 69)
+./mvnw test -Djacoco.skip=true
+
 # Somente o IT com PostgreSQL real (requer Docker)
 ENABLE_TC=true ./mvnw test -Dtest=AuthFlowPostgresIT
 
 # Classe específica
 ./mvnw test -Dtest=AuthServiceTest
 ```
+
+> **JaCoCo + Java 25:** O agente JaCoCo é incompatível com Java 25 (class file major version 69). Se o build falhar com `Unsupported class file major version 69`, execute com `-Djacoco.skip=true`. Os testes em si rodam normalmente; apenas o relatório de cobertura é suprimido.
 
 > Os ITs (exceto `AuthFlowPostgresIT`) rodam com perfil `dev` — banco H2 in-memory, sem Redis, sem envio de email real.
 
@@ -82,6 +87,11 @@ Testam uma classe isolada com dependências mockadas via Mockito. Não sobem o c
 | `HmlStartupValidatorTest` | Boot fail em hml com variáveis ausentes |
 | `ProdStartupValidatorTest` | Boot fail em prod com variáveis ausentes ou com valores padrão |
 | `ActuatorSecurityTest` | Endpoints de actuator acessíveis apenas com auth |
+| `OrdemDeServicoTest` | Modelo de domínio: invariantes de `OrdemDeServico` — abrir, mudar status, definir orçamento, registrar entrega |
+| `StatusOSTest` | Tabela completa de transições válidas/inválidas de `StatusOS` |
+| `ClienteServiceTest` | CRUD de clientes; `buscarClienteDoUsuario`, `buscarPorUserId`, `buscarPorIds` (retorno de mapa indexado) |
+| `InstrumentoServiceTest` | CRUD de instrumentos; `listarPorCliente` paginado; `buscarPorIds` (mapa indexado) |
+| `OrdemDeServicoServiceTest` | Abertura de OS; `listarPorCliente` paginado; transições de status; definirOrcamento/aprovarOrcamento/registrarEntrega |
 
 Controladores (MockMvc com contexto parcial):
 
@@ -102,6 +112,9 @@ Controladores (MockMvc com contexto parcial):
 | `SystemInfoControllerTest` | GET /system/info — DEV_ELEVATED obrigatório |
 | `NotificationControllerTest` | Lista paginada (+ `unreadOnly`), unread-count, markAsRead, markAllAsRead, delete, SSE stream (verifica registro no `SseEmitterRegistry`) |
 | `NotificationPreferenceControllerTest` | GET preferências (lista completa e vazia), PUT com type válido (verifica delegação ao use case) e com type inválido (→ 400 `INVALID_ENUM_VALUE` com lista de valores) |
+| `ClienteControllerTest` | POST (201, 400 sem nome), GET /{id} (200, 404), GET (200 paginado), PUT (200, 404), DELETE (204, 404, 409 com OS aberta); `listarInstrumentos` retorna `PageResult` |
+| `InstrumentoControllerTest` | POST (201, 404 cliente inexistente), GET /{id} com ownership check (200, 404), PUT (200, 404), DELETE (204, 404, 409) |
+| `OrdemDeServicoControllerTest` | Abertura de OS (201, 404); listagem com batch lookup clientes/instrumentos (elimina N+1); atualização de status; fluxo de orçamento |
 
 Adapters com contexto Spring parcial (cache/AOP):
 
@@ -129,6 +142,8 @@ Sobem o contexto Spring completo com MockMvc contra H2 in-memory (perfil `dev`),
 | `TotpFlowIT` | End-to-end do fluxo TOTP: ativar 2FA → login com challenge → completar com código TOTP real → receber tokens |
 | `NotificationFlowIT` | Fluxo completo de notificações: register → verify-email → login → troca de senha (dispara `PASSWORD_CHANGED` async) → GET /notifications → mark-as-read → DELETE. Segundo teste cobre markAllAsRead zerando o unread-count. |
 | `SystemConfigFlowIT` | GET /system/config/public (sem auth → 200); GET /system/config sem auth → 401, com DEV_ELEVATED → 200; PUT chave inválida → 400, sem auth → 401; PUT chave pública persiste e aparece no getPublicConfig; toggle maintenance mode via `SystemConfigPort` direto (bypassa whitelist de PUBLIC_KEYS) evicta `@CacheEvict(allEntries=true)` → `MaintenanceModeFilter` retorna 503 em paths não-allowlistados; `/system/config/public` permanece acessível durante manutenção. |
+| `OSFlowIT` | Fluxo completo (11 steps): criação de cliente → instrumento → abertura de OS → EM_ANALISE → definir orçamento (→ AGUARDANDO_APROVACAO) → aprovar (→ EM_MANUTENCAO) → PRONTO → registrar entrega (→ ENTREGUE); OS com cliente inexistente → 404; transição RECEBIDO → PRONTO (inválida) → 422. Usa `@Sql(BEFORE_TEST_CLASS)` para criar a sequence `os_numero_seq` no H2. |
+| `RbacNegocioIT` | Verifica matrix RBAC por role: ROLE_ATENDENTE pode criar clientes/instrumentos/OS; ROLE_TECNICO pode listar e atualizar OS mas não criar clientes; ROLE_CLIENTE vê apenas as próprias OS e instrumentos (ownership enforcement). |
 
 ---
 

@@ -208,6 +208,101 @@ FK: `fk_notification_prefs_username → users(username) ON DELETE CASCADE` (V42)
 
 ---
 
+### ClienteEntity — tabela `clientes`
+
+| Coluna | Tipo | Constraint |
+|--------|------|-----------|
+| id | BIGSERIAL | PK |
+| nome | VARCHAR(150) | NOT NULL |
+| telefone | VARCHAR(20) | NOT NULL |
+| email | VARCHAR(150) | nullable |
+| cpf | VARCHAR(14) | nullable |
+| endereco | VARCHAR(255) | nullable |
+| observacoes | TEXT | nullable |
+| user_id | BIGINT | FK → users(id) ON DELETE SET NULL, nullable |
+| created_at | TIMESTAMPTZ | NOT NULL default now() |
+
+Índices: `idx_clientes_nome (nome)`, `idx_clientes_email (email)`, `idx_clientes_user_id (user_id)`
+
+O `user_id` é opcional — um cliente pode existir sem conta no sistema. Quando vinculado, permite buscar o cliente pelo `username` via `findByUserUsername()` (query nativa JOIN com tabela `users`).
+
+---
+
+### InstrumentoEntity — tabela `instrumentos`
+
+| Coluna | Tipo | Constraint |
+|--------|------|-----------|
+| id | BIGSERIAL | PK |
+| tipo | VARCHAR(30) | NOT NULL (enum `TipoInstrumento`) |
+| marca | VARCHAR(100) | NOT NULL |
+| modelo | VARCHAR(100) | NOT NULL |
+| numero_de_serie | VARCHAR(100) | nullable |
+| cor | VARCHAR(50) | nullable |
+| descricao | TEXT | nullable |
+| cliente_id | BIGINT | NOT NULL FK → clientes(id) |
+| created_at | TIMESTAMPTZ | NOT NULL default now() |
+
+Índices: `idx_instrumentos_cliente_id (cliente_id)`
+
+`findByClienteId(clienteId, page, size)` retorna `Page<InstrumentoEntity>` com `PageRequest` e ordenação por `id ASC`.
+
+---
+
+### OrdemDeServicoEntity — tabela `ordens_de_servico` + `os_tecnicos`
+
+| Coluna | Tipo | Constraint |
+|--------|------|-----------|
+| id | BIGSERIAL | PK |
+| numero | VARCHAR(20) | UNIQUE NOT NULL — gerado via sequence `os_numero_seq` |
+| status | VARCHAR(30) | NOT NULL (enum `StatusOS`) |
+| instrumento_id | BIGINT | NOT NULL FK → instrumentos(id) |
+| cliente_id | BIGINT | NOT NULL FK → clientes(id) |
+| atendente_username | VARCHAR(80) | NOT NULL |
+| descricao_problema | TEXT | NOT NULL |
+| laudo_tecnico | TEXT | nullable |
+| valor_orcamento | NUMERIC(10,2) | nullable |
+| valor_final | NUMERIC(10,2) | nullable |
+| prazo_estimado | DATE | nullable |
+| data_recebimento | TIMESTAMPTZ | NOT NULL default now() |
+| data_entrega | TIMESTAMPTZ | nullable |
+| observacoes | TEXT | nullable |
+| created_at | TIMESTAMPTZ | NOT NULL default now() |
+| updated_at | TIMESTAMPTZ | NOT NULL default now() |
+
+Índices: `idx_os_status`, `idx_os_cliente_id`, `idx_os_instrumento_id`
+
+**Tabela `os_tecnicos`** (ElementCollection):
+
+| Coluna | Tipo | Constraint |
+|--------|------|-----------|
+| os_id | BIGINT | PK composta, FK → ordens_de_servico(id) ON DELETE CASCADE |
+| tecnico_username | VARCHAR(80) | PK composta |
+| assigned_at | TIMESTAMPTZ | NOT NULL default now() |
+
+Índices: `idx_os_tecnicos_tecnico_username (tecnico_username)` — busca invertida por técnico.
+
+**`@BatchSize(size=25)` no `ElementCollection`:** A coleção `tecnicosUsernames` usa `FetchType.EAGER` com `@org.hibernate.annotations.BatchSize(size=25)`. Sem o BatchSize, cada OS carregada dispararia uma query separada para `os_tecnicos`; com BatchSize=25, o Hibernate agrupa as buscas de até 25 OS em uma única `IN (...)`.
+
+`findByClienteId(clienteId, page, size)` retorna `Page<OrdemDeServicoEntity>` com ordenação por `createdAt DESC`.
+
+---
+
+### HistoricoOSEntity — tabela `historico_os`
+
+| Coluna | Tipo | Constraint |
+|--------|------|-----------|
+| id | BIGSERIAL | PK |
+| os_id | BIGINT | NOT NULL FK → ordens_de_servico(id) ON DELETE CASCADE |
+| status_anterior | VARCHAR(30) | nullable — null na criação da OS |
+| status_novo | VARCHAR(30) | NOT NULL |
+| usuario_username | VARCHAR(80) | NOT NULL |
+| observacao | TEXT | nullable |
+| timestamp | TIMESTAMPTZ | NOT NULL default now() |
+
+Índices: `idx_historico_os_os_id (os_id)`
+
+---
+
 ### SystemConfigEntity — tabela `system_config`
 
 | Coluna | Tipo | Constraint |
@@ -263,8 +358,8 @@ adapter/out/persistence/converter/*EntityConverter  (domínio ↔ entidade)
 | Perfil | Banco | Migrations |
 |--------|-------|-----------|
 | `dev` | H2 in-memory | Schema criado automaticamente pelo JPA (sem Flyway) |
-| `hml` | PostgreSQL | Flyway (`V1__init.sql` … `V43__`) |
-| `prod` | PostgreSQL | Flyway (`V1__init.sql` … `V43__`) |
+| `hml` | PostgreSQL | Flyway (`V1__init.sql` … `V52__`) |
+| `prod` | PostgreSQL | Flyway (`V1__init.sql` … `V52__`) |
 
 Em hml/prod não há seed automático — usuário admin deve ser criado via CLI (`create-admin`).
 
@@ -322,6 +417,20 @@ Em hml/prod não há seed automático — usuário admin deve ser criado via CLI
 | `V41__notification_preferences.sql` | Cria a tabela `notification_preferences` com PK composta `(username, type)` e flags `in_app_enabled`/`email_enabled` (ambas `DEFAULT TRUE`). Linha ausente = preferências padrão (ambas ativas). Permite desativar notificação in-app e/ou email por tipo individualmente via `PUT /notifications/preferences/{type}`. |
 | `V42__notification_indexes_and_fk.sql` | Adiciona índice `idx_notification_preferences_username ON notification_preferences(username)` — evita full table scan em `findByUsername`. Adiciona FK `fk_notifications_username → users(username) ON DELETE CASCADE` e `fk_notification_prefs_username → users(username) ON DELETE CASCADE` — garante integridade referencial e limpeza automática de notificações ao deletar usuário. |
 | `V43__add_notification_read_at_index.sql` | Índice parcial `idx_notifications_read_at ON notifications(read_at) WHERE read_at IS NOT NULL` — melhora o DELETE do `NotificationCleanupService`, que filtra por `read_at IS NOT NULL AND read_at < :cutoff`. Sem este índice a query faz full scan conforme a tabela cresce. |
+
+#### V44–V52 — Domínio de negócio Target Music
+
+| Migration | Descrição |
+|-----------|-----------|
+| `V44__clientes.sql` | Cria tabela `clientes` (id, nome, telefone, email, cpf, endereco, observacoes, user_id, created_at). FK opcional para `users(id) ON DELETE SET NULL`. Índices em `nome`, `email`, `user_id`. |
+| `V45__instrumentos.sql` | Cria tabela `instrumentos` com FK `cliente_id → clientes(id)`. Índice em `cliente_id`. |
+| `V46__ordens_de_servico.sql` | Cria sequence `os_numero_seq` (global, nunca reinicia) e tabela `ordens_de_servico`. Índices em `status`, `cliente_id`, `instrumento_id`. |
+| `V47__os_tecnicos.sql` | Cria tabela `os_tecnicos` (os_id, tecnico_username, assigned_at) — PK composta. FK para `ordens_de_servico(id) ON DELETE CASCADE`. Índice reverso em `tecnico_username`. |
+| `V48__historico_os.sql` | Cria tabela `historico_os` — rastreia cada transição de status com status anterior/novo, usuário e timestamp. FK para `ordens_de_servico(id) ON DELETE CASCADE`. Índice em `os_id`. |
+| `V49__pecas.sql` | Cria tabela `pecas` com estoque (`quantidade_estoque INTEGER CHECK >= 0`). Índices em `nome` e `ativo`. |
+| `V50__os_pecas.sql` | Cria tabela `os_pecas` — vincula peças usadas em OS, com snapshot de nome e preço no momento do uso. FK para `ordens_de_servico(id)` e `pecas(id)`. Índices em `os_id` e `peca_id`. |
+| `V51__business_permissions.sql` | Insere 18 permissões de negócio: `CLIENTE_*` (4), `INSTRUMENTO_*` (4), `OS_*` (10). `ON CONFLICT DO NOTHING`. |
+| `V52__business_roles.sql` | Cria roles `ROLE_ATENDENTE`, `ROLE_TECNICO`, `ROLE_CLIENTE` e atribui permissões conforme a matriz RBAC de negócio. `ROLE_ADMIN` herda todas as permissões de negócio. |
 
 ---
 

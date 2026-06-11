@@ -790,3 +790,185 @@ seed.dev.password=${DEV_PASSWORD:Dev@secure1!}
 `SeedConfig` (`@Profile("dev")`) cria os usuários de teste:
 - `admin` / `Admin@dev1` com `ROLE_ADMIN`
 - `user` / `User@dev1` com `ROLE_USER`
+
+---
+
+## Domínio de Negócio Target Music
+
+### Cliente (`core/domain/model/cliente/`)
+
+```java
+class Cliente {
+    Long id
+    String nome        // obrigatório
+    String telefone    // obrigatório
+    String email       // opcional
+    String cpf         // opcional
+    String endereco    // opcional
+    String observacoes // opcional
+    Long userId        // FK para users — null se sem conta no sistema
+    Instant createdAt
+
+    static Cliente of(nome, telefone)              // criação nova
+    static Cliente fromPersisted(id, nome, ...)    // reconstrução do banco
+    void vincularUsuario(Long userId)
+    void atualizar(nome, telefone, email, cpf, endereco, observacoes)
+}
+```
+
+### Instrumento (`core/domain/model/instrumento/`)
+
+```java
+class Instrumento {
+    Long id
+    TipoInstrumento tipo  // GUITARRA, VIOLAO, BAIXO, CONTRABAIXO, TECLADO,
+                          // PIANO, BATERIA, PERCUSSAO, SOPRO, CORDA, OUTRO
+    String marca          // obrigatório
+    String modelo         // obrigatório
+    String numeroDeSerie  // opcional
+    String cor            // opcional
+    String descricao      // opcional
+    Long clienteId        // obrigatório
+    Instant createdAt
+
+    static Instrumento of(tipo, marca, modelo, clienteId)
+    static Instrumento fromPersisted(id, tipo, marca, modelo, ...)
+    void atualizar(tipo, marca, modelo, numeroDeSerie, cor, descricao)
+}
+```
+
+### OrdemDeServico e StatusOS (`core/domain/model/os/`)
+
+```java
+class OrdemDeServico {
+    Long id
+    String numero            // gerado pela sequence OS_NUMERO_SEQ — ex: "OS-2026-00001"
+    StatusOS status          // estado atual da máquina de estados
+    Long instrumentoId
+    Long clienteId
+    String atendenteUsername
+    Set<String> tecnicosUsernames
+    String descricaoProblema
+    String laudoTecnico
+    BigDecimal valorOrcamento
+    BigDecimal valorFinal
+    LocalDate prazoEstimado
+    Instant dataRecebimento
+    Instant dataEntrega       // null até registrarEntrega()
+    String observacoes
+    Instant createdAt
+    Instant updatedAt
+
+    static OrdemDeServico abrir(numero, instrumentoId, clienteId, atendente, descricao)
+    void mudarStatus(novoStatus)         // lança TransicaoStatusInvalidaException se inválida
+    void adicionarTecnico(username)
+    void removerTecnico(username)
+    void definirOrcamento(valor)
+    void definirPrazo(prazoEstimado)
+    void definirValorFinal(valor)
+    void registrarEntrega()              // valida PRONTO → ENTREGUE, seta dataEntrega = now
+    void atualizarLaudo(laudo)
+    void definirObservacoes(obs)
+}
+
+enum StatusOS {
+    RECEBIDO, EM_ANALISE, AGUARDANDO_APROVACAO, EM_MANUTENCAO,
+    AGUARDANDO_PECA, PRONTO, ENTREGUE, CANCELADO
+
+    static boolean transicaoValida(StatusOS de, StatusOS para)
+    // Ver tabela completa em docs/api-reference.md — seção PATCH /os/{id}/status
+}
+```
+
+### HistoricoOS (record)
+
+Imutável — gravado a cada transição de status.
+
+```java
+record HistoricoOS(
+    Long id,
+    Long osId,
+    StatusOS statusAnterior,    // null na criação (RECEBIDO)
+    StatusOS statusNovo,
+    String usuarioUsername,
+    String observacao,          // opcional
+    Instant timestamp
+)
+```
+
+---
+
+## Exceções de domínio — negócio
+
+| Exceção | Quando | HTTP / errorCode |
+|---------|--------|-----------------|
+| `ClienteNotFoundException` | Cliente não encontrado por id | `404 CLIENTE_NOT_FOUND` |
+| `ClienteTemOSEmAbertoException` | Tentativa de remover cliente com OS em aberto | `409 CLIENTE_TEM_OS_ABERTA` |
+| `ClienteNaoVinculadoException` | ROLE_CLIENTE sem cliente vinculado no sistema | `403 CLIENTE_NAO_VINCULADO` |
+| `InstrumentoNotFoundException` | Instrumento não encontrado por id | `404 INSTRUMENTO_NOT_FOUND` |
+| `InstrumentoTemOSEmAbertoException` | Tentativa de remover instrumento com OS em aberto | `409 INSTRUMENTO_TEM_OS_ABERTA` |
+| `OrdemDeServicoNotFoundException` | OS não encontrada por id ou número | `404 OS_NOT_FOUND` |
+| `TransicaoStatusInvalidaException` | `mudarStatus()` chamado com transição proibida | `422 TRANSICAO_STATUS_INVALIDA` |
+| `OSNaoPodeSerRemovidaException` | DELETE de OS em status diferente de RECEBIDO/CANCELADO | `422 OS_NAO_PODE_SER_REMOVIDA` |
+
+---
+
+## Ports IN — negócio
+
+### ClienteUseCase
+
+| Método | Descrição |
+|--------|-----------|
+| `Cliente criar(nome, telefone, email, cpf, endereco, observacoes)` | Cria novo cliente |
+| `Cliente buscarPorId(id)` | Lança `ClienteNotFoundException` se ausente |
+| `Optional<Cliente> buscarPorUserId(userId)` | Resolve usuário → cliente |
+| `Optional<Cliente> buscarClienteDoUsuario(username)` | Resolve username → cliente (JOIN nativo) |
+| `Map<Long, Cliente> buscarPorIds(ids)` | Batch lookup — elimina N+1 nos controllers |
+| `PageResult<Cliente> listar(search, page, size)` | Listagem paginada com filtro opcional |
+| `Cliente atualizar(id, nome, telefone, email, cpf, endereco, observacoes)` | Atualização |
+| `void remover(id)` | Lança `ClienteTemOSEmAbertoException` se houver OS em aberto |
+| `void vincularUsuario(clienteId, userId)` | Vincula conta de usuário ao cliente |
+
+### InstrumentoUseCase
+
+| Método | Descrição |
+|--------|-----------|
+| `Instrumento criar(tipo, marca, modelo, clienteId, numeroDeSerie, cor, descricao)` | Valida cliente |
+| `Instrumento buscarPorId(id)` | Lança `InstrumentoNotFoundException` se ausente |
+| `Map<Long, Instrumento> buscarPorIds(ids)` | Batch lookup |
+| `PageResult<Instrumento> listarPorCliente(clienteId, page, size)` | Paginado; valida cliente |
+| `Instrumento atualizar(id, tipo, marca, modelo, numeroDeSerie, cor, descricao)` | |
+| `void remover(id)` | Lança `InstrumentoTemOSEmAbertoException` se houver OS em aberto |
+
+### OrdemDeServicoUseCase
+
+| Método | Descrição |
+|--------|-----------|
+| `OrdemDeServico abrir(instrumentoId, clienteId, atendenteUsername, descricaoProblema, observacoes)` | Valida cliente e instrumento; gera número via sequence |
+| `OrdemDeServico buscarPorId(id)` | |
+| `OrdemDeServico buscarPorNumero(numero)` | |
+| `PageResult<OrdemDeServico> listar(status, clienteId, tecnicoUsername, page, size)` | Filtros opcionais |
+| `PageResult<OrdemDeServico> listarPorCliente(clienteId, page, size)` | Paginado; valida cliente |
+| `void adicionarTecnico(osId, tecnicoUsername)` | |
+| `void removerTecnico(osId, tecnicoUsername)` | |
+| `void atualizarStatus(osId, novoStatus, usuarioUsername, observacao)` | Lança `TransicaoStatusInvalidaException` |
+| `List<HistoricoOS> buscarHistorico(osId)` | |
+| `void definirOrcamento(osId, valor, prazoEstimado, usuarioUsername)` | → automático AGUARDANDO_APROVACAO |
+| `void aprovarOrcamento(osId, usuarioUsername)` | → EM_MANUTENCAO |
+| `void recusarOrcamento(osId, observacao, usuarioUsername)` | → CANCELADO |
+| `void registrarEntrega(osId, valorFinal, usuarioUsername)` | OS deve estar em PRONTO → ENTREGUE |
+| `OrdemDeServico atualizar(osId, laudoTecnico, prazoEstimado, observacoes)` | |
+| `void remover(osId)` | Só RECEBIDO ou CANCELADO |
+
+---
+
+## RBAC — roles de negócio
+
+| Role | Permissões |
+|------|-----------|
+| `ROLE_ATENDENTE` | `CLIENTE_CREATE/READ/UPDATE`, `INSTRUMENTO_CREATE/READ/UPDATE`, `OS_CREATE/READ/UPDATE/STATUS/ASSIGN_TECNICO/ORCAMENTO_APROVAR/ORCAMENTO_RECUSAR/ENTREGA` |
+| `ROLE_TECNICO` | `CLIENTE_READ`, `INSTRUMENTO_READ`, `OS_READ/UPDATE/STATUS/ORCAMENTO` |
+| `ROLE_CLIENTE` | `OS_READ`, `INSTRUMENTO_READ` — com ownership enforcement nos controllers |
+| `ROLE_ADMIN` | Todas as permissões de negócio acima + permissões administrativas |
+
+> `ROLE_CLIENTE` não tem `CLIENTE_READ` — portanto não pode listar outros clientes. O ownership enforcement nos controllers usa `isCliente(Authentication)` para forçar o filtro ao próprio clienteId.

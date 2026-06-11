@@ -60,6 +60,14 @@ Todos os erros retornam `ApiError`:
 | `UNREADABLE_BODY` | 400 | Body ausente ou JSON malformado |
 | `EMAIL_DELIVERY_FAILED` | 503 | Falha ao enviar email |
 | `INTERNAL_ERROR` | 500 | Erro interno inesperado |
+| `CLIENTE_NOT_FOUND` | 404 | Cliente não encontrado |
+| `INSTRUMENTO_NOT_FOUND` | 404 | Instrumento não encontrado |
+| `OS_NOT_FOUND` | 404 | Ordem de serviço não encontrada (por id ou número) |
+| `CLIENTE_TEM_OS_ABERTA` | 409 | Cliente tem OS em aberto — não pode ser removido |
+| `INSTRUMENTO_TEM_OS_ABERTA` | 409 | Instrumento tem OS em aberto — não pode ser removido |
+| `TRANSICAO_STATUS_INVALIDA` | 422 | Transição de status inválida para o estado atual da OS |
+| `OS_NAO_PODE_SER_REMOVIDA` | 422 | OS só pode ser removida quando em RECEBIDO ou CANCELADO |
+| `CLIENTE_NAO_VINCULADO` | 403 | Usuário com `ROLE_CLIENTE` sem cliente vinculado no sistema |
 
 ---
 
@@ -1096,6 +1104,312 @@ Retorna informações do ambiente ativo. Útil para diagnosticar qual perfil est
 ```
 
 **Erros:** `401` sem autenticação, `403` sem `DEV_ELEVATED`.
+
+---
+
+## Clientes — `/clientes`
+
+### POST /clientes — Permissão: CLIENTE_CREATE
+
+```json
+// Request
+{
+  "nome": "string",       // obrigatório, max 150
+  "telefone": "string",   // obrigatório, max 20
+  "email": "string",      // opcional, email válido, max 150
+  "cpf": "string",        // opcional, max 14
+  "endereco": "string",   // opcional, max 255
+  "observacoes": "string" // opcional
+}
+// Response 201 + Location: /clientes/{id}
+```
+
+**Erros:** `400 VALIDATION_ERROR`
+
+---
+
+### GET /clientes — Permissão: CLIENTE_READ
+
+```
+Query: search (string, opcional), page (default 0), size (default 20, max 100)
+```
+
+```json
+// Response 200
+{
+  "content": [ClienteResponse],
+  "page": 0, "size": 20, "totalElements": 5, "totalPages": 1
+}
+```
+
+---
+
+### GET /clientes/{id} — Permissão: CLIENTE_READ
+
+```
+// Response 200 → ClienteResponse / 404 CLIENTE_NOT_FOUND
+```
+
+---
+
+### PUT /clientes/{id} — Permissão: CLIENTE_UPDATE
+
+```json
+// Mesmo body de POST /clientes
+// Response 200 → ClienteResponse / 404 CLIENTE_NOT_FOUND
+```
+
+---
+
+### DELETE /clientes/{id} — Permissão: CLIENTE_DELETE
+
+```
+// Response 204 / 404 CLIENTE_NOT_FOUND / 409 CLIENTE_TEM_OS_ABERTA
+```
+
+---
+
+### GET /clientes/{id}/instrumentos — Permissão: INSTRUMENTO_READ
+
+```
+Query: page (default 0), size (default 20, max 100)
+```
+
+**Ownership:** se o token for de `ROLE_CLIENTE`, o `{id}` da URL deve ser o id do próprio cliente — caso contrário retorna `403 ACCESS_DENIED`.
+
+```json
+// Response 200
+{
+  "content": [InstrumentoResponse],
+  "page": 0, "size": 20, "totalElements": 3, "totalPages": 1
+}
+```
+
+**Erros:** `404 CLIENTE_NOT_FOUND`, `403 CLIENTE_NAO_VINCULADO` (ROLE_CLIENTE sem vínculo no sistema)
+
+---
+
+### GET /clientes/{id}/os — Permissão: OS_READ
+
+```
+Query: page (default 0), size (default 20, max 100)
+```
+
+**Ownership:** mesmo comportamento de `/clientes/{id}/instrumentos`.
+
+```json
+// Response 200 → PageResult<OSResponse>
+```
+
+**Erros:** `404 CLIENTE_NOT_FOUND`, `403 CLIENTE_NAO_VINCULADO`
+
+---
+
+## Instrumentos — `/instrumentos`
+
+### POST /instrumentos — Permissão: INSTRUMENTO_CREATE
+
+```json
+// Request
+{
+  "clienteId": 1,             // obrigatório
+  "tipo": "GUITARRA",         // obrigatório — enum TipoInstrumento
+  "marca": "string",          // obrigatório, max 100
+  "modelo": "string",         // obrigatório, max 100
+  "numeroDeSerie": "string",  // opcional, max 100
+  "cor": "string",            // opcional, max 50
+  "descricao": "string"       // opcional
+}
+// Response 201 + Location: /instrumentos/{id}
+```
+
+`TipoInstrumento`: `GUITARRA`, `VIOLAO`, `BAIXO`, `CONTRABAIXO`, `TECLADO`, `PIANO`, `BATERIA`, `PERCUSSAO`, `SOPRO`, `CORDA`, `OUTRO`
+
+**Erros:** `400 VALIDATION_ERROR`, `404 CLIENTE_NOT_FOUND`
+
+---
+
+### GET /instrumentos/{id} — Permissão: INSTRUMENTO_READ
+
+**Ownership:** se `ROLE_CLIENTE`, o instrumento deve pertencer ao próprio cliente — caso contrário `403 ACCESS_DENIED`.
+
+```
+// Response 200 → InstrumentoResponse / 404 INSTRUMENTO_NOT_FOUND
+```
+
+---
+
+### PUT /instrumentos/{id} — Permissão: INSTRUMENTO_UPDATE
+
+```json
+// Mesmo body de POST (clienteId ignorado na atualização — o vínculo não muda)
+// Response 200 → InstrumentoResponse / 404 INSTRUMENTO_NOT_FOUND
+```
+
+---
+
+### DELETE /instrumentos/{id} — Permissão: INSTRUMENTO_DELETE
+
+```
+// Response 204 / 404 INSTRUMENTO_NOT_FOUND / 409 INSTRUMENTO_TEM_OS_ABERTA
+```
+
+---
+
+## Ordens de Serviço — `/os`
+
+### POST /os — Permissão: OS_CREATE
+
+```json
+// Request
+{
+  "instrumentoId": 1,           // obrigatório
+  "clienteId": 1,               // obrigatório
+  "descricaoProblema": "string", // obrigatório
+  "observacoes": "string"       // opcional
+}
+// Response 201 + Location: /os/{id}
+// Status inicial: RECEBIDO
+```
+
+**Erros:** `400 VALIDATION_ERROR`, `404 CLIENTE_NOT_FOUND`, `404 INSTRUMENTO_NOT_FOUND`
+
+---
+
+### GET /os — Permissão: OS_READ
+
+```
+Query: status (StatusOS, opcional), clienteId (Long, opcional),
+       tecnicoUsername (string, opcional),
+       page (default 0), size (default 20, max 100)
+```
+
+**Ownership:** se `ROLE_CLIENTE`, o filtro `clienteId` é forçado para o id do próprio cliente — query params de `clienteId` são ignorados.
+
+```json
+// Response 200 → PageResult<OSResponse>
+```
+
+**Erros:** `403 CLIENTE_NAO_VINCULADO`
+
+---
+
+### GET /os/{id} — Permissão: OS_READ
+
+**Ownership:** se `ROLE_CLIENTE`, a OS deve pertencer ao próprio cliente — caso contrário `403 ACCESS_DENIED`.
+
+```
+// Response 200 → OSResponse / 404 OS_NOT_FOUND
+```
+
+---
+
+### GET /os/numero/{numero} — Permissão: OS_READ
+
+**Ownership:** mesmo comportamento de `GET /os/{id}`.
+
+```
+// Response 200 → OSResponse / 404 OS_NOT_FOUND
+```
+
+---
+
+### GET /os/{id}/historico — Permissão: OS_READ
+
+```json
+// Response 200 → List<HistoricoOSResponse>
+// [{ "statusAnterior": "RECEBIDO", "statusNovo": "EM_ANALISE",
+//    "usuarioUsername": "admin", "observacao": null, "timestamp": "..." }]
+```
+
+---
+
+### PATCH /os/{id}/status — Permissão: OS_STATUS
+
+```json
+{ "novoStatus": "EM_ANALISE", "observacao": "string" }
+// Response 204 / 404 OS_NOT_FOUND / 422 TRANSICAO_STATUS_INVALIDA
+```
+
+**Transições válidas por status:**
+
+| Status atual | Pode ir para |
+|---|---|
+| `RECEBIDO` | `EM_ANALISE`, `CANCELADO` |
+| `EM_ANALISE` | `AGUARDANDO_APROVACAO`, `CANCELADO` |
+| `AGUARDANDO_APROVACAO` | `EM_MANUTENCAO`, `CANCELADO` |
+| `EM_MANUTENCAO` | `AGUARDANDO_PECA`, `PRONTO`, `CANCELADO` |
+| `AGUARDANDO_PECA` | `EM_MANUTENCAO`, `CANCELADO` |
+| `PRONTO` | `ENTREGUE`, `EM_MANUTENCAO` |
+| `ENTREGUE` | — (terminal) |
+| `CANCELADO` | — (terminal) |
+
+---
+
+### PATCH /os/{id}/tecnico — Permissão: OS_ASSIGN_TECNICO
+
+```json
+{ "tecnicoUsername": "string", "acao": "ADICIONAR" }
+// acao: ADICIONAR | REMOVER
+// Response 204 / 404 OS_NOT_FOUND
+```
+
+---
+
+### PATCH /os/{id}/orcamento — Permissão: OS_ORCAMENTO
+
+```json
+{ "valor": 350.00, "prazoEstimado": "2026-07-01" }
+// Response 204 — muda status para AGUARDANDO_APROVACAO automaticamente
+// 404 OS_NOT_FOUND / 422 TRANSICAO_STATUS_INVALIDA
+```
+
+---
+
+### PATCH /os/{id}/orcamento/aprovar — Permissão: OS_ORCAMENTO_APROVAR
+
+```
+// Response 204 — muda status para EM_MANUTENCAO
+// 404 OS_NOT_FOUND / 422 TRANSICAO_STATUS_INVALIDA
+```
+
+---
+
+### PATCH /os/{id}/orcamento/recusar — Permissão: OS_ORCAMENTO_RECUSAR
+
+```json
+{ "observacao": "string" }  // opcional
+// Response 204 — muda status para CANCELADO
+// 404 OS_NOT_FOUND / 422 TRANSICAO_STATUS_INVALIDA
+```
+
+---
+
+### PATCH /os/{id}/entrega — Permissão: OS_ENTREGA
+
+```json
+{ "valorFinal": 350.00 }  // opcional
+// Response 204 — muda status para ENTREGUE (OS deve estar em PRONTO)
+// 404 OS_NOT_FOUND / 422 TRANSICAO_STATUS_INVALIDA
+```
+
+---
+
+### PUT /os/{id} — Permissão: OS_UPDATE
+
+```json
+{ "laudoTecnico": "string", "prazoEstimado": "2026-07-01", "observacoes": "string" }
+// Response 200 → OSResponse / 404 OS_NOT_FOUND
+```
+
+---
+
+### DELETE /os/{id} — Permissão: OS_DELETE
+
+```
+// Response 204 / 404 OS_NOT_FOUND / 422 OS_NAO_PODE_SER_REMOVIDA
+// Só permite remoção quando status = RECEBIDO ou CANCELADO
+```
 
 ---
 

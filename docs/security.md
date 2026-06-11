@@ -86,6 +86,34 @@ Authorities carregadas:
 
 Anotações nos controllers: `@PreAuthorize("hasAuthority('PERMISSION_NAME')")`
 
+### Controle de ownership — ROLE_CLIENTE (IDOR prevention)
+
+Usuários com `ROLE_CLIENTE` têm acesso restrito apenas aos seus próprios dados. O controle é feito nos controllers via `Authentication` injetado:
+
+```java
+private boolean isCliente(Authentication auth) {
+    return auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> "ROLE_CLIENTE".equals(a.getAuthority()));
+}
+```
+
+**Endpoints com enforcement de ownership:**
+
+| Endpoint | Comportamento para ROLE_CLIENTE |
+|----------|--------------------------------|
+| `GET /os` | `clienteId` forçado para o id do próprio cliente — query param ignorado |
+| `GET /os/{id}` | 403 se `os.clienteId ≠ clienteId` do usuário |
+| `GET /os/numero/{numero}` | Idem |
+| `GET /instrumentos/{id}` | 403 se `instrumento.clienteId ≠ clienteId` do usuário |
+| `GET /clientes/{id}/instrumentos` | 403 se `{id} ≠ clienteId` do usuário |
+| `GET /clientes/{id}/os` | Idem |
+
+**Resolução do clienteId:** O controller chama `ClienteUseCase.buscarClienteDoUsuario(username)` para obter o id do cliente vinculado ao `username` do JWT. Se o usuário `ROLE_CLIENTE` não tiver cliente vinculado, é lançada `ClienteNaoVinculadoException` → `403 CLIENTE_NAO_VINCULADO`.
+
+A busca usa uma query nativa `JOIN clientes ON users WHERE username = :username` em `ClienteJpaRepository`, sem introduzir dependência de `UserRepository` no core.
+
+---
+
 ### Endpoints de notificação — `isAuthenticated()` intencional
 
 Os endpoints `/notifications/**` e `/notifications/preferences/**` usam `isAuthenticated()` em vez de uma permissão granular. Toda conta autenticada pode gerenciar suas próprias notificações — não há RBAC fino aqui por design: o controle de acesso é por **ownership** (cada operação filtra pelo `username` do JWT), não por role/permission.

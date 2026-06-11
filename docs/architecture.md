@@ -46,6 +46,16 @@ com.securityspring
 │   │   │   ├── rbac/
 │   │   │   │   ├── Role                  — entidade com permissões
 │   │   │   │   └── Permission            — entidade simples
+│   │   │   ├── cliente/
+│   │   │   │   └── Cliente               — entidade de negócio (nome, telefone, email, cpf, userId)
+│   │   │   ├── instrumento/
+│   │   │   │   ├── Instrumento           — entidade de negócio (tipo, marca, modelo, clienteId)
+│   │   │   │   └── TipoInstrumento       — enum (GUITARRA, VIOLAO, BAIXO, CONTRABAIXO, TECLADO, ...)
+│   │   │   ├── os/
+│   │   │   │   ├── OrdemDeServico        — entidade com máquina de estados embutida
+│   │   │   │   ├── StatusOS              — enum com tabela de transições válidas
+│   │   │   │   ├── HistoricoOS           — record de auditoria de transição de status
+│   │   │   │   └── OSPeca                — peça utilizada na OS (snapshot nome/preço)
 │   │   │   ├── AuditLogEntry             — record de entrada de auditoria
 │   │   │   ├── AvatarServeResult         — sealed interface (Redirect | LocalFile | NotFound)
 │   │   │   ├── StatsResult               — record de totais do dashboard
@@ -63,8 +73,13 @@ com.securityspring
 │   │   │   │            TotpCodeRequiredException, TotpNotConsecutiveException,
 │   │   │   │            TotpNotEnabledException, TotpSetupRequiredException
 │   │   │   ├── avatar/  AvatarTooLargeException, InvalidAvatarFormatException
+│   │   │   ├── cliente/ ClienteNotFoundException, ClienteTemOSEmAbertoException,
+│   │   │   │            ClienteNaoVinculadoException
 │   │   │   ├── email/   EmailAlreadyVerifiedException, EmailDeliveryException,
 │   │   │   │            EmailVerificationCodeExpiredException, EmailVerificationCodeNotFoundException
+│   │   │   ├── instrumento/ InstrumentoNotFoundException, InstrumentoTemOSEmAbertoException
+│   │   │   ├── os/      OrdemDeServicoNotFoundException, OSNaoPodeSerRemovidaException,
+│   │   │   │            TransicaoStatusInvalidaException
 │   │   │   ├── rbac/    RoleNotFoundException
 │   │   │   ├── user/    EmailAlreadyExistsException, UsernameAlreadyExistsException, UserNotFoundException
 │   │   │   ├── PermissionAlreadyExistsException, PermissionNotFoundException
@@ -82,7 +97,10 @@ com.securityspring
 │   │   │   ├── AuditLogsUseCase          — listagem filtrada
 │   │   │   ├── StatsUseCase              — totais do dashboard
 │   │   │   ├── SystemConfigUseCase       — feature flags em runtime (GET/PUT /system/config)
-│   │   │   └── NotificationPreferenceUseCase — preferências in-app/email por tipo
+│   │   │   ├── NotificationPreferenceUseCase — preferências in-app/email por tipo
+│   │   │   ├── ClienteUseCase            — CRUD clientes; buscarClienteDoUsuario; buscarPorIds (batch)
+│   │   │   ├── InstrumentoUseCase        — CRUD instrumentos; listarPorCliente paginado; buscarPorIds
+│   │   │   └── OrdemDeServicoUseCase     — abertura, transições, orçamento, entrega, histórico
 │   │   └── out/                          — contratos implementados pelos adapters
 │   │       ├── user/        UserRepository, UserCachePort, UserAuthoritiesPort
 │   │       ├── token/       AccessTokenPort, RefreshTokenPort, TokenBlocklistPort
@@ -97,6 +115,10 @@ com.securityspring
 │   │       │                TotpBackupCodeRepository, TotpChallengeTokenRepository,
 │   │       │                TotpEncryptionPort
 │   │       ├── storage/     AvatarStoragePort
+│   │       ├── cliente/     ClienteRepository (findByUserId, findByUserUsername, findAllByIdIn)
+│   │       ├── instrumento/ InstrumentoRepository (findByClienteId paginado, findAllByIdIn)
+│   │       ├── os/          OrdemDeServicoRepository (findByClienteId paginado),
+│   │       │                HistoricoOSRepository, OSNumeroSequencePort
 │   │       └── audit/       AuditLogRepository
 │   └── service/                          — implementações dos use cases
 │       ├── AuthService
@@ -110,6 +132,9 @@ com.securityspring
 │       ├── StatsService
 │       ├── SystemConfigService
 │       ├── NotificationService
+│       ├── ClienteService
+│       ├── InstrumentoService
+│       ├── OrdemDeServicoService
 │       └── NotificationPreferenceService
 ├── adapter/
 │   ├── in/                               — camada HTTP
@@ -128,7 +153,10 @@ com.securityspring
 │   │   │   ├── SystemConfigController    — /system/config (feature flags runtime, requer DEV_ELEVATED)
 │   │   │   ├── NotificationController    — /notifications (list, unread-count, mark-read, mark-all-read, delete, stream SSE)
 │   │   │   ├── NotificationPreferenceController — /notifications/preferences (GET lista, PUT por tipo)
-│   │   │   └── StatsController           — /stats
+│   │   │   ├── StatsController           — /stats
+│   │   │   ├── ClienteController         — /clientes (CRUD + /instrumentos + /os paginados)
+│   │   │   ├── InstrumentoController     — /instrumentos (CRUD com ownership check para ROLE_CLIENTE)
+│   │   │   └── OrdemDeServicoController  — /os (abertura, status, orçamento, entrega, histórico)
 │   │   ├── sse/
 │   │   │   └── SseEmitterRegistry            — gerencia conexões SSE por usuário;
 │   │   │                                       implementa `NotificationSsePort`;
